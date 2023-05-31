@@ -42,7 +42,13 @@ class AbsensiController extends Controller
 
             $data = [
                 'title' => 'Absensi',
-                'absensi' => Absensi::join('karyawan', 'absensi.id_karyawan', '=', 'karyawan.id_karyawan')->join('jenis_pekerjaan', 'absensi.id_jenis_pekerjaan', '=', 'jenis_pekerjaan.id')->join('pemakai_jasa', 'absensi.id_pemakai', '=', 'pemakai_jasa.id_pemakai')->where('id_departemen', '1')->whereBetween('absensi.tanggal', [$dari, $sampai])->orderBy('absensi.id_absen', 'desc')->get(),
+                'absensi' => DB::select("SELECT d.id_pemakai,a.id_jenis_pekerjaan, a.id_karyawan, b.nama_karyawan, a.tanggal, c.jenis_pekerjaan, d.pemakai, a.ket ,a.id_absen FROM absensi as a
+                LEFT JOIN karyawan as b ON a.id_karyawan = b.id_karyawan
+                LEFT JOIN jenis_pekerjaan as c ON a.id_jenis_pekerjaan = c.id
+                LEFT JOIN pemakai_jasa as d ON a.id_pemakai = d.id_pemakai
+                WHERE b.id_departemen = '1' AND a.tanggal BETWEEN '$dari' AND '$sampai'
+                ORDER BY a.id_absen DESC
+                "),
                 'karyawan' => Karyawan::where('id_departemen', '1')->get(),
                 'pemakai' => Pemakai::all(),
                 'jenis_pekerjaan' => Jenis::all(),
@@ -51,11 +57,22 @@ class AbsensiController extends Controller
                 'sampai' => $sampai,
                 'id_departemen' => $id_departemen
             ];
-            return view('absensi.absensi',['tglDari => '.$dari.','.'tglSampai' => $sampai], $data);
+            return view('absensi.absensi', ['tglDari => ' . $dari . ',' . 'tglSampai' => $sampai], $data);
         }
     }
 
-    
+    public function absensi_edit($id_absen)
+    {
+        $data = [
+            'title' => '2',
+            'karyawan' => Karyawan::where('id_departemen', '1')->get(),
+            'pemakai' => Pemakai::all(),
+            'jenis_pekerjaan' => Jenis::all(),
+            'd' => Absensi::where('id_absen', $id_absen)->first()
+        ];
+        return view('absensi.edit', $data);
+    }
+
 
     public function addAbsensi(Request $request)
     {
@@ -90,13 +107,13 @@ class AbsensiController extends Controller
 
         Absensi::where('id_absen', $request->id_absen)->update($data);
 
-        
+
         return redirect()->route('absensi', ['tglDari' => $request->tglDari, 'tglSampai' => $request->tglSampai]);
     }
 
     public function deleteAbsensi(Request $request)
     {
- 
+
         Absensi::where('id_absen', $request->id_absen)->delete();
 
         return redirect()->route('absensi', ['id_departemen' => 1, 'tglDari' => $request->tglDari, 'tglSampai' => $request->tglSampai]);
@@ -116,7 +133,7 @@ class AbsensiController extends Controller
     {
         $dari = $request->dari;
         $sampai = $request->sampai;
-       
+
         // $data = [
         //     'absensi' => Absensi::select('absensi.*', 'karyawan.nama_karyawan', 'karyawan.id_departemen', 'jenis_pekerjaan.jenis_pekerjaan', 'pemakai_jasa.pemakai')->join('karyawan', 'absensi.id_karyawan', '=', 'karyawan.id_karyawan')->join('jenis_pekerjaan', 'absensi.id_jenis_pekerjaan', '=', 'jenis_pekerjaan.id')->join('pemakai_jasa', 'absensi.id_pemakai', '=', 'pemakai_jasa.id_pemakai')->where('id_departemen', 1)->whereBetween('absensi.tanggal', [$dari, $sampai])->orderBy('id', 'desc')->get(),
         // ];
@@ -131,6 +148,6 @@ class AbsensiController extends Controller
         $sampai = $request->sampai;
 
         Absensi::whereBetween('absensi.tanggal', [$dari, $sampai])->delete();
-        return redirect()->route('absensi', ['id_departemen' => 1, 'tglDari' => $request->tglDari, 'tglSampai' => $request->tglSampai])->with('error', 'Berhasil hapus absen '.$dari.' - '.$sampai);
+        return redirect()->route('absensi', ['id_departemen' => 1, 'tglDari' => $request->tglDari, 'tglSampai' => $request->tglSampai])->with('error', 'Berhasil hapus absen ' . $dari . ' - ' . $sampai);
     }
 }

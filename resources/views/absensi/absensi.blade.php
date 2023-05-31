@@ -278,8 +278,8 @@
                                             <td>{{ $d->pemakai }}</td>
                                             <td>{{ $d->ket }}</td>
                                             <td>
-                                                <a class="btn btn-sm btn-success" id="edit={{ $d->id_absen }}"
-                                                    data-toggle="modal" data-target="#editAbsensi{{ $d->id_absen }}"><i
+                                                <a class="btn btn-sm btn-success editRow" id_absen="{{ $d->id_absen }}" id="edit={{ $d->id_absen }}"
+                                                    data-toggle="modal" data-target="#editAbsensi"><i
                                                         class="fas fa-edit"></i></a>
                                                 <form class="d-inline-block"
                                                     action="{{ route('deleteAbsensi', ['tglDari' => $dari, 'tglSampai' => $sampai]) }}"
@@ -307,69 +307,43 @@
             </div><!-- /.container-fluid -->
         </section>
         <!-- /.content -->
-        @foreach ($absensi as $d)
-            <form action="{{ route('editAbsensi', ['tglDari' => $dari, 'tglSampai' => $sampai]) }}" method="post">
-                @csrf
-                @method('patch')
-                <!-- Modal -->
-                <div class="modal fade" id="editAbsensi{{ $d->id_absen }}" tabindex="-1" role="dialog"
-                    aria-labelledby="exampleModalLabel" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="exampleModalLabel">Edit</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <input type="hidden" name="id_absen" value="{{ $d->id_absen }}">
-                                <label for="">Nama Karyawan</label>
-                                <select class="form-control" name="id_karyawan" id="">
-                                    @foreach ($karyawan as $p)
-                                        <option value="{{ $p->id_karyawan }}"
-                                            {{ $p->id_karyawan == $d->id_karyawan ? 'selected' : '' }}>
-                                            {{ $p->nama_karyawan }}</option>
-                                    @endforeach
-                                </select>
-                                <label for="">Tanggal</label>
-                                <input type="date" value="{{ $d->tanggal }}" name="tanggal"
-                                    class="form-control mb-3">
-                                <label for="">Jenis Pekerjaan</label>
-                                <select class="form-control" name="id_jenis" id="">
-                                    @foreach ($jenis_pekerjaan as $p)
-                                        <option value="{{ $p->id }}"
-                                            {{ $p->id == $d->id_jenis_pekerjaan ? 'selected' : '' }}>
-                                            {{ $p->jenis_pekerjaan }}</option>
-                                    @endforeach
-                                </select>
-                                <label for="">Pemakai Jasa</label>
-                                <select class="form-control" name="id_pemakai" id="">
-                                    @foreach ($pemakai as $p)
-                                        <option value="{{ $p->id_pemakai }}"
-                                            {{ $p->id_pemakai == $d->id_pemakai ? 'selected' : '' }}>
-                                            {{ $p->pemakai }}</option>
-                                    @endforeach
-                                </select>
-                                <label for="">Keterangan</label>
-                                <input type="text" value="{{ $d->ket }}" name="keterangan"
-                                    class="form-control mb-3">
-                                <input type="submit" name="simpan" value="Simpan" id="tombol"
-                                    class="btn btn-primary mt-3">
-                                <button type="button" class="btn btn-secondary  mt-3"
-                                    data-dismiss="modal">Close</button>
-                            </div>
-                            <div class="modal-footer">
-                            </div>
+        <form action="{{ route('editAbsensi', ['tglDari' => $dari, 'tglSampai' => $sampai]) }}" method="post">
+            @csrf
+            @method('patch')
+            <!-- Modal -->
+            <div class="modal fade" id="editAbsensi" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalLabel">Edit</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="load-edit"></div>
+                        </div>
+                        <div class="modal-footer">
                         </div>
                     </div>
                 </div>
-            </form>
-        @endforeach
+            </div>
+        </form>
     @section('script')
         <script>
             $(document).ready(function() {
-
+                $(document).on('click', `.editRow`, function() {
+                    var id = $(this).attr(`id_absen`)
+                    $.ajax({
+                        type: "GET",
+                        url: `absensi_edit/${id}`,
+                        success: function(r) {
+                            $(`#load-edit`).html(r);
+                            $('.select2').select2()
+                        }
+                    });
+                })
                 $('.select2').select2()
                 //Initialize Select2 Elements
                 $('.select2bs4').select2({

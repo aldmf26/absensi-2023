@@ -62,6 +62,7 @@ use Illuminate\Support\Facades\Route;
     Route::controller(AbsensiController::class)
         ->group(function () {
             Route::get('/absensi',  'index')->name('absensi');
+            Route::get('/absensi_edit/{id}',  'absensi_edit')->name('absensi_edit');
             Route::get('/detail-absensi',  'detailAbsensi')->name('detailAbsensi');
             Route::post('/absensi',  'addAbsensi')->name('addAbsensi');
             Route::patch('/absensi',  'editAbsensi')->name('editAbsensi');
