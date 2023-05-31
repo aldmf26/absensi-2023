@@ -331,7 +331,8 @@ class AbsensiAgrilaras extends Controller
       ->setCellValue('N1', 'RP KASBON')
       ->setCellValue('O1', 'RP DENDA')
       ->setCellValue('P1', 'TOTAL GAJI')
-      ->setCellValue('Q1', 'LAMA KERJA');
+      ->setCellValue('Q1', 'TGL MASUK')
+      ->setCellValue('R1', 'LAMA KERJA');
 
     $kolom = 2;
     $no = 1;
@@ -368,7 +369,8 @@ class AbsensiAgrilaras extends Controller
         ->setCellValue('N' . $kolom, $k->kasbon)
         ->setCellValue('O' . $kolom, $k->denda)
         ->setCellValue('P' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
-        ->setCellValue('Q' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
+        ->setCellValue('Q' . $kolom, $k->tanggal_masuk)
+        ->setCellValue('R' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
       $ttlGajiM += $k->ttl_gaji_m;
       $ttlGajiE += $k->ttl_gaji_e;
       $ttlGajiSp += $k->ttl_gaji_sp;
@@ -413,7 +415,7 @@ class AbsensiAgrilaras extends Controller
     ];
 
     $batas = count($query) + 1;
-    $sheet->getStyle('A1:P' . $b)->applyFromArray($style);
+    $sheet->getStyle('A1:R' . $b)->applyFromArray($style);
 
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="Gaji Agrilaras.xlsx"');
