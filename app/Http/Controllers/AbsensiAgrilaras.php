@@ -394,7 +394,7 @@ class AbsensiAgrilaras extends Controller
     $sheet->setCellValue('N' . $b, $ttlBulanan);
     $sheet->setCellValue('O' . $b, $ttlKasbon);
     $sheet->setCellValue('P' . $b, $ttlDenda);
-    $sheet->setCellValue('Q' . $b, $ttlGaji + $total_lembur_2 - $k->kasbon - $k->denda);
+    $sheet->setCellValue('Q' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
 
     $sheet->getStyle('H' . $b)->getFont()->setBold(true);
     $sheet->getStyle('I' . $b)->getFont()->setBold(true);
