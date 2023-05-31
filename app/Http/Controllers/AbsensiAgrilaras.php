@@ -365,7 +365,7 @@ class AbsensiAgrilaras extends Controller
         ->setCellValue('J' . $kolom, $k->ttl_gaji_e)
         ->setCellValue('K' . $kolom, $k->ttl_gaji_sp)
         ->setCellValue('L' . $kolom, $k->g_bulanan)
-        ->setCellValue('M' . $kolom, $k->lama_lembur == '' ? 0 : ($k->lama_lembur / 60) * $k->bayaran)
+        ->setCellValue('M' . $kolom, $k->lama_lembur == '' ? 0 : ($k->rp_m / 8) * ($k->lama_lembur / 60))
         ->setCellValue('N' . $kolom, $k->kasbon)
         ->setCellValue('O' . $kolom, $k->denda)
         ->setCellValue('P' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
