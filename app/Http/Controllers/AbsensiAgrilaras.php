@@ -404,6 +404,7 @@ class AbsensiAgrilaras extends Controller
     $sheet->getStyle('M' . $b)->getFont()->setBold(true);
     $sheet->getStyle('N' . $b)->getFont()->setBold(true);
     $sheet->getStyle('Q' . $b)->getFont()->setBold(true);
+    $sheet->getStyle('O' . $b)->getFont()->setBold(true);
 
 
     $writer = new Xlsx($spreadsheet);
