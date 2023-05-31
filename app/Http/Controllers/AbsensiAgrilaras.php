@@ -318,17 +318,17 @@ class AbsensiAgrilaras extends Controller
       ->setCellValue('A1', 'NO')
       ->setCellValue('B1', 'NAMA KARYAWAN')
       ->setCellValue('C1', 'SATUAN /HARI')
-      ->setCellValue('D1', 'TOTAL M')
-      ->setCellValue('E1', 'TOTAL E')
-      ->setCellValue('F1', 'TOTAL SP')
-      ->setCellValue('G1', 'JAM LEMBUR')
-      ->setCellValue('H1', 'TOTAL ABSEN')
-      ->setCellValue('I1', 'RP M')
-      ->setCellValue('J1', 'RP E')
-      ->setCellValue('K1', 'RP SP')
-      ->setCellValue('L1', 'RP JAM LEMBUR')
-      ->setCellValue('M1', 'BULANAN')
-      ->setCellValue('N1', 'RP LEMBUR')
+      ->setCellValue('D1', 'RP LEMBUR')
+      ->setCellValue('E1', 'TOTAL M')
+      ->setCellValue('F1', 'TOTAL E')
+      ->setCellValue('G1', 'TOTAL SP')
+      ->setCellValue('H1', 'JAM LEMBUR')
+      ->setCellValue('I1', 'TOTAL ABSEN')
+      ->setCellValue('J1', 'RP M')
+      ->setCellValue('K1', 'RP E')
+      ->setCellValue('L1', 'RP SP')
+      ->setCellValue('M1', 'RP JAM LEMBUR')
+      ->setCellValue('N1', 'BULANAN')
       ->setCellValue('O1', 'RP KASBON')
       ->setCellValue('P1', 'RP DENDA')
       ->setCellValue('Q1', 'TOTAL GAJI')
@@ -345,12 +345,12 @@ class AbsensiAgrilaras extends Controller
     $ttlGaji = 0;
     $ttlKasbon = 0;
     $ttlDenda = 0;
-    $ttlRpLembur = 0;
+    $ttllembur = 0;
     $total_lembur_2 = 0;
     foreach ($query as $k) {
       $ttlAbsen = $k->qty_m + $k->qty_e + $k->qty_sp;
       $ttlGajiS = $k->ttl_gaji_m + $k->ttl_gaji_e + $k->ttl_gaji_sp + $k->g_bulanan;
-      $total_lembur = $k->lama_lembur == '' ? 0 : ($k->lama_lembur / 60) * $k->bayaran;
+      $total_lembur = $k->lama_lembur == '' ? 0 : ($k->rp_m / 8) * ($k->lama_lembur / 60);
       $totalKerja = new DateTime($k->tanggal_masuk);
       $today = new DateTime();
       $tKerja = $today->diff($totalKerja);
@@ -358,17 +358,17 @@ class AbsensiAgrilaras extends Controller
         ->setCellValue('A' . $kolom, $no++)
         ->setCellValue('B' . $kolom, $k->nama_karyawan)
         ->setCellValue('C' . $kolom, $k->rp_m)
-        ->setCellValue('D' . $kolom, $k->qty_m == '' ? 0 : $k->qty_m)
-        ->setCellValue('E' . $kolom, $k->qty_e == '' ? 0 : $k->qty_e)
-        ->setCellValue('F' . $kolom, $k->qty_sp == '' ? 0 : $k->qty_sp)
-        ->setCellValue('G' . $kolom, $k->lama_lembur == '' ? 0 : $k->lama_lembur / 60)
-        ->setCellValue('H' . $kolom, $ttlAbsen == '' ? 0 : $ttlAbsen)
-        ->setCellValue('I' . $kolom, $k->ttl_gaji_m == '' ? 0 : $k->ttl_gaji_m)
-        ->setCellValue('J' . $kolom, $k->ttl_gaji_e)
-        ->setCellValue('K' . $kolom, $k->ttl_gaji_sp)
-        ->setCellValue('L' . $kolom, $k->rp_m / 8)
-        ->setCellValue('M' . $kolom, $k->g_bulanan)
-        ->setCellValue('N' . $kolom, $k->lama_lembur == '' ? 0 : ($k->rp_m / 8) * ($k->lama_lembur / 60))
+        ->setCellValue('D' . $kolom, $k->rp_m / 8)
+        ->setCellValue('E' . $kolom, $k->qty_m == '' ? 0 : $k->qty_m)
+        ->setCellValue('F' . $kolom, $k->qty_e == '' ? 0 : $k->qty_e)
+        ->setCellValue('G' . $kolom, $k->qty_sp == '' ? 0 : $k->qty_sp)
+        ->setCellValue('H' . $kolom, $k->lama_lembur == '' ? 0 : $k->lama_lembur / 60)
+        ->setCellValue('I' . $kolom, $ttlAbsen == '' ? 0 : $ttlAbsen)
+        ->setCellValue('J' . $kolom, $k->ttl_gaji_m == '' ? 0 : $k->ttl_gaji_m)
+        ->setCellValue('K' . $kolom, $k->ttl_gaji_e)
+        ->setCellValue('L' . $kolom, $k->ttl_gaji_sp)
+        ->setCellValue('M' . $kolom, $total_lembur)
+        ->setCellValue('N' . $kolom, $k->g_bulanan)
         ->setCellValue('O' . $kolom, $k->kasbon)
         ->setCellValue('P' . $kolom, $k->denda)
         ->setCellValue('Q' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
@@ -377,22 +377,21 @@ class AbsensiAgrilaras extends Controller
       $ttlGajiM += $k->ttl_gaji_m;
       $ttlGajiE += $k->ttl_gaji_e;
       $ttlGajiSp += $k->ttl_gaji_sp;
+      $ttllembur += $total_lembur;
       $ttlBulanan += $k->g_bulanan;
-      $ttlRpLembur += $k->rp_m / 8;
       $ttlKasbon += $k->kasbon;
       $ttlDenda += $k->denda;
       $ttlGaji += $k->ttl_gaji_m + $k->ttl_gaji_e + $k->ttl_gaji_sp + $k->g_bulanan;
-      $total_lembur_2 += $k->lama_lembur == '' ? 0 : ($k->lama_lembur / 60) * $k->bayaran;
+      $total_lembur_2 += $total_lembur;
       $kolom++;
     }
     $b = count($query) + 2;
     $sheet->setCellValue('H' . $b, 'TOTAL');
-    $sheet->setCellValue('I' . $b, $ttlGajiM);
-    $sheet->setCellValue('J' . $b, $ttlGajiE);
-    $sheet->setCellValue('K' . $b, $ttlGajiSp);
-    $sheet->setCellValue('L' . $b, $ttlRpLembur);
-    $sheet->setCellValue('M' . $b, $ttlBulanan);
-    $sheet->setCellValue('N' . $b, $total_lembur_2);
+    $sheet->setCellValue('J' . $b, $ttlGajiM);
+    $sheet->setCellValue('K' . $b, $ttlGajiE);
+    $sheet->setCellValue('L' . $b, $ttlGajiSp);
+    $sheet->setCellValue('M' . $b, $ttllembur);
+    $sheet->setCellValue('N' . $b, $ttlBulanan);
     $sheet->setCellValue('O' . $b, $ttlKasbon);
     $sheet->setCellValue('P' . $b, $ttlDenda);
     $sheet->setCellValue('Q' . $b, $ttlGaji + $total_lembur_2 - $k->kasbon - $k->denda);
@@ -404,6 +403,7 @@ class AbsensiAgrilaras extends Controller
     $sheet->getStyle('L' . $b)->getFont()->setBold(true);
     $sheet->getStyle('M' . $b)->getFont()->setBold(true);
     $sheet->getStyle('N' . $b)->getFont()->setBold(true);
+    $sheet->getStyle('Q' . $b)->getFont()->setBold(true);
 
 
     $writer = new Xlsx($spreadsheet);
