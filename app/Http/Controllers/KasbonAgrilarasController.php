@@ -42,7 +42,7 @@ class KasbonAgrilarasController extends Controller
             'id_departemen' => $r->id_departemen,
             'tgl1' => $r->tgl1,
             'tgl2' => $r->tgl2,
-            'kasbon' => DB::select("SELECT b.nama_karyawan, a.nominal FROM kasbon a
+            'kasbon' => DB::select("SELECT b.nama_karyawan, sum(a.nominal) as nominal FROM kasbon a
 LEFT JOIN karyawan b on a.id_karyawan = b.id_karyawan
 WHERE a.tgl BETWEEN '$r->tgl1' AND '$r->tgl2' AND a.id_departemen = '$r->id_departemen'
 GROUP BY a.id_karyawan"),
