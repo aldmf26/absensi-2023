@@ -370,7 +370,7 @@ class AbsensiAgrilaras extends Controller
         ->setCellValue('L' . $kolom, $k->ttl_gaji_sp)
         ->setCellValue('M' . $kolom, $total_lembur)
         ->setCellValue('N' . $kolom, $k->g_bulanan)
-        ->setCellValue('O' . $kolom, $ttlGajiS)
+        ->setCellValue('O' . $kolom, $ttlGajiS + $total_lembur)
         ->setCellValue('P' . $kolom, $k->kasbon)
         ->setCellValue('Q' . $kolom, $k->denda)
         ->setCellValue('R' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
@@ -394,7 +394,7 @@ class AbsensiAgrilaras extends Controller
     $sheet->setCellValue('L' . $b, $ttlGajiSp);
     $sheet->setCellValue('M' . $b, $ttllembur);
     $sheet->setCellValue('N' . $b, $ttlBulanan);
-    $sheet->setCellValue('O' . $b, $ttlGaji);
+    $sheet->setCellValue('O' . $b, $ttlGaji + $total_lembur_2);
     $sheet->setCellValue('P' . $b, $ttlKasbon);
     $sheet->setCellValue('Q' . $b, $ttlDenda);
     $sheet->setCellValue('R' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
@@ -408,6 +408,9 @@ class AbsensiAgrilaras extends Controller
     $sheet->getStyle('N' . $b)->getFont()->setBold(true);
     $sheet->getStyle('Q' . $b)->getFont()->setBold(true);
     $sheet->getStyle('O' . $b)->getFont()->setBold(true);
+    $sheet->getStyle('P' . $b)->getFont()->setBold(true);
+    $sheet->getStyle('Q' . $b)->getFont()->setBold(true);
+    $sheet->getStyle('R' . $b)->getFont()->setBold(true);
 
 
     $writer = new Xlsx($spreadsheet);
