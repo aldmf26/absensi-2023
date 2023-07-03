@@ -329,11 +329,12 @@ class AbsensiAgrilaras extends Controller
       ->setCellValue('L1', 'RP SP')
       ->setCellValue('M1', 'RP LEMBUR')
       ->setCellValue('N1', 'BULANAN')
-      ->setCellValue('O1', 'RP KASBON')
-      ->setCellValue('P1', 'RP DENDA')
-      ->setCellValue('Q1', 'TOTAL GAJI')
-      ->setCellValue('R1', 'TGL MASUK')
-      ->setCellValue('S1', 'LAMA KERJA');
+      ->setCellValue('O1', 'TOTAL GAJI')
+      ->setCellValue('P1', 'RP KASBON')
+      ->setCellValue('Q1', 'RP DENDA')
+      ->setCellValue('R1', 'SISA GAJI')
+      ->setCellValue('S1', 'TGL MASUK')
+      ->setCellValue('T1', 'LAMA KERJA');
 
     $kolom = 2;
     $no = 1;
@@ -369,11 +370,12 @@ class AbsensiAgrilaras extends Controller
         ->setCellValue('L' . $kolom, $k->ttl_gaji_sp)
         ->setCellValue('M' . $kolom, $total_lembur)
         ->setCellValue('N' . $kolom, $k->g_bulanan)
-        ->setCellValue('O' . $kolom, $k->kasbon)
-        ->setCellValue('P' . $kolom, $k->denda)
-        ->setCellValue('Q' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
-        ->setCellValue('R' . $kolom, $k->tanggal_masuk)
-        ->setCellValue('S' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
+        ->setCellValue('O' . $kolom, $ttlGajiS)
+        ->setCellValue('P' . $kolom, $k->kasbon)
+        ->setCellValue('Q' . $kolom, $k->denda)
+        ->setCellValue('R' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
+        ->setCellValue('S' . $kolom, $k->tanggal_masuk)
+        ->setCellValue('T' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
       $ttlGajiM += $k->ttl_gaji_m;
       $ttlGajiE += $k->ttl_gaji_e;
       $ttlGajiSp += $k->ttl_gaji_sp;
@@ -392,9 +394,10 @@ class AbsensiAgrilaras extends Controller
     $sheet->setCellValue('L' . $b, $ttlGajiSp);
     $sheet->setCellValue('M' . $b, $ttllembur);
     $sheet->setCellValue('N' . $b, $ttlBulanan);
-    $sheet->setCellValue('O' . $b, $ttlKasbon);
-    $sheet->setCellValue('P' . $b, $ttlDenda);
-    $sheet->setCellValue('Q' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
+    $sheet->setCellValue('O' . $b, $ttlGaji);
+    $sheet->setCellValue('P' . $b, $ttlKasbon);
+    $sheet->setCellValue('Q' . $b, $ttlDenda);
+    $sheet->setCellValue('R' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
 
     $sheet->getStyle('H' . $b)->getFont()->setBold(true);
     $sheet->getStyle('I' . $b)->getFont()->setBold(true);
