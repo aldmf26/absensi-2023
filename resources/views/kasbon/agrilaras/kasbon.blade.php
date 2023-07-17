@@ -33,14 +33,15 @@
                                 + Tambah
                             </button>
                             <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#view">
-                               <i class="fas fa-eye"></i> View
+                                <i class="fas fa-eye"></i> View
                             </button>
                             <a href="{{ route('kasbonAgrilaras.print', [
                                 'id_departemen' => $id_departemen,
                                 'tgl1' => $tgl1,
                                 'tgl2' => $tgl2,
-                            ]) }}" class="btn btn-primary">
-                               <i class="fas fa-print"></i> Print
+                            ]) }}"
+                                class="btn btn-primary">
+                                <i class="fas fa-print"></i> Print
                             </a>
                         </div>
 
@@ -105,7 +106,8 @@
                                     <div class="form-group">
                                         <label for="">Dari</label>
                                         <input type="date" name="tgl1" class="form-control">
-                                        <input type="hidden" value="{{$id_departemen}}" name="id_departemen" class="form-control">
+                                        <input type="hidden" value="{{ $id_departemen }}" name="id_departemen"
+                                            class="form-control">
                                     </div>
                                 </div>
                                 <div class="col-lg-6">
@@ -114,7 +116,7 @@
                                         <input type="date" name="tgl2" class="form-control">
                                     </div>
                                 </div>
-                                
+
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -140,18 +142,20 @@
                         </div>
                         <div class="modal-body">
                             <div class="row">
-                                <div class="col-lg-3">
+                                <div class="col-lg-4">
                                     <div class="form-group">
                                         <input type="hidden" name="id_departemen"
                                             value="{{ request()->get('id_departemen') }}">
                                         <label for="">Tanggal</label>
-                                        <input type="date" name="tgl" class="form-control">
+                                        <input type="date" name="tgl" value="{{ date('Y-m-d') }}" class="form-control">
                                     </div>
                                 </div>
-                                <div class="col-lg-5">
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-8">
                                     <div class="form-group">
                                         <label for="">Nama Karyawan</label>
-                                        <select name="id_karyawan" class="form-control select2" id="">
+                                        <select name="id_karyawan[]" class="form-control select2" id="">
                                             <option value="">- Pilih Karyawan -</option>
                                             @foreach ($karyawan as $k)
                                                 <option value="{{ $k->id_karyawan }}">{{ $k->nama_karyawan }}</option>
@@ -159,13 +163,20 @@
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-lg-4">
+                                <div class="col-lg-3">
                                     <div class="form-group">
                                         <label for="">Nominal</label>
-                                        <input type="text" name="nominal" class="form-control">
+                                        <input type="text" name="nominal[]" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="col-lg-1">
+                                    <div class="form-group">
+                                        <label for="">Aksi</label><br>
+                                        <a id_departemen="{{ Request::get('id_departemen') }}" class="btn btn-sm btn-primary btn_tambah"><i class="fas fa-plus"></i></a>
                                     </div>
                                 </div>
                             </div>
+                            <div id="btn_tambah"></div>
                         </div>
                         <div class="modal-footer">
                             <input type="submit" name="simpan" value="Simpan" id="tombol" class="btn btn-primary">
@@ -205,6 +216,8 @@
     @section('script')
         <script>
             $(document).ready(function() {
+                plusRow(1, 'btn_tambah', 'kasbon/btn_tambah')
+
                 $(document).on('click', '.edit', function() {
                     var id_kasbon = $(this).attr('id_kasbon')
                     $.ajax({

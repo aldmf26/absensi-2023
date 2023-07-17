@@ -33,15 +33,26 @@ class DendaController extends Controller
 
     public function create(Request $r)
     {
-        $this->tbl->insert([
-            'tgl' => $r->tgl,
-            'id_karyawan' => $r->id_karyawan,
-            'nominal' => $r->nominal,
-            'ket' => $r->keterangan,
-            'id_departemen' => $r->id_departemen,
-            'admin' => auth()->user()->nama
-        ]);
+        for ($i=0; $i < count($r->id_karyawan); $i++) { 
+            $this->tbl->insert([
+                'tgl' => $r->tgl,
+                'id_karyawan' => $r->id_karyawan[$i],
+                'nominal' => $r->nominal[$i],
+                'ket' => $r->keterangan[$i],
+                'id_departemen' => $r->id_departemen,
+                'admin' => auth()->user()->nama
+            ]);
+        }
         return redirect()->route('denda', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil ditambahkan');
+    }
+
+    public function btn_tambah(Request $r)
+    {
+        $data = [
+            'karyawan' => DB::table('karyawan')->where('id_departemen', $r->id_departemen)->get(),
+            'count' => $r->count
+        ];
+        return view('denda.btn_tambah',$data);
     }
 
     public function edit(Request $r)

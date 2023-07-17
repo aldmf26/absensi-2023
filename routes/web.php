@@ -150,6 +150,7 @@ use Illuminate\Support\Facades\Route;
         ->group(function () {
             Route::get('/kasbonAgrilaras', 'index')->name('kasbonAgrilaras');
             Route::post('/kasbonAgrilaras', 'create')->name('kasbonAgrilaras.create');
+            Route::get('/kasbon/btn_tambah', 'btn_tambah');
             Route::get('/kasbonAgrilaras/delete', 'delete')->name('kasbonAgrilaras.delete');
             Route::get('/kasbonAgrilaras/edit', 'edit')->name('kasbonAgrilaras.edit');
             Route::get('/kasbonAgrilaras/print', 'print')->name('kasbonAgrilaras.print');
@@ -160,6 +161,7 @@ use Illuminate\Support\Facades\Route;
         ->group(function () {
             Route::get('/denda', 'index')->name('denda');
             Route::post('/denda', 'create')->name('denda.create');
+            Route::get('/denda/btn_tambah', 'btn_tambah');
             Route::get('/denda/delete', 'delete')->name('denda.delete');
             Route::get('/denda/edit', 'edit')->name('denda.edit');
             Route::post('/denda/update', 'update')->name('denda.update');

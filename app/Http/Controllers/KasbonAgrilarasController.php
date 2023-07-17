@@ -43,9 +43,9 @@ class KasbonAgrilarasController extends Controller
             'tgl1' => $r->tgl1,
             'tgl2' => $r->tgl2,
             'kasbon' => DB::select("SELECT b.nama_karyawan, sum(a.nominal) as nominal FROM kasbon a
-LEFT JOIN karyawan b on a.id_karyawan = b.id_karyawan
-WHERE a.tgl BETWEEN '$r->tgl1' AND '$r->tgl2' AND a.id_departemen = '$r->id_departemen'
-GROUP BY a.id_karyawan"),
+                LEFT JOIN karyawan b on a.id_karyawan = b.id_karyawan
+                WHERE a.tgl BETWEEN '$r->tgl1' AND '$r->tgl2' AND a.id_departemen = '$r->id_departemen'
+                GROUP BY a.id_karyawan"),
         ];
 
         return view('kasbon.agrilaras.print', $data);
@@ -53,14 +53,25 @@ GROUP BY a.id_karyawan"),
 
     public function create(Request $r)
     {
-        $this->tbl->insert([
-            'tgl' => $r->tgl,
-            'id_karyawan' => $r->id_karyawan,
-            'nominal' => $r->nominal,
-            'id_departemen' => $r->id_departemen,
-            'admin' => auth()->user()->nama
-        ]);
+        for ($i=0; $i < count($r->id_karyawan); $i++) { 
+            $this->tbl->insert([
+                'tgl' => $r->tgl,
+                'id_karyawan' => $r->id_karyawan[$i],
+                'nominal' => $r->nominal[$i],
+                'id_departemen' => $r->id_departemen,
+                'admin' => auth()->user()->nama
+            ]);
+        }
         return redirect()->route('kasbonAgrilaras', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil ditambahkan');
+    }
+
+    public function btn_tambah(Request $r)
+    {
+        $data = [
+            'karyawan' => DB::table('karyawan')->where('id_departemen', $r->id_departemen)->get(),
+            'count' => $r->count
+        ];
+        return view('kasbon.agrilaras.btn_tambah',$data);
     }
 
     public function edit(Request $r)

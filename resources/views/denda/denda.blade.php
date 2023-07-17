@@ -80,8 +80,13 @@
                 <!-- /.row (main row) -->
             </div><!-- /.container-fluid -->
         </section>
+        <style>
+            .modal-lg-max {
+                max-width: 1000px;
+            }
+        </style>
         <!-- /.content -->
-<form action="" method="GET">
+        <form action="" method="GET">
             <!-- Modal tambah karyawan-->
             <div class="modal fade" id="view" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
                 aria-hidden="true">
@@ -99,7 +104,8 @@
                                     <div class="form-group">
                                         <label for="">Dari</label>
                                         <input type="date" name="tgl1" class="form-control">
-                                        <input type="hidden" value="{{$id_departemen}}" name="id_departemen" class="form-control">
+                                        <input type="hidden" value="{{ $id_departemen }}" name="id_departemen"
+                                            class="form-control">
                                     </div>
                                 </div>
                                 <div class="col-lg-6">
@@ -108,7 +114,7 @@
                                         <input type="date" name="tgl2" class="form-control">
                                     </div>
                                 </div>
-                                
+
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -124,7 +130,7 @@
             <!-- Modal tambah karyawan-->
             <div class="modal fade" id="tambah" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
                 aria-hidden="true">
-                <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-dialog modal-lg-max" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="exampleModalLabel">Tambah {{ $title }}</h5>
@@ -134,18 +140,20 @@
                         </div>
                         <div class="modal-body">
                             <div class="row">
-                                <div class="col-lg-3">
+                                <div class="col-lg-2">
                                     <div class="form-group">
                                         <input type="hidden" name="id_departemen"
                                             value="{{ request()->get('id_departemen') }}">
                                         <label for="">Tanggal</label>
-                                        <input required type="date" name="tgl" class="form-control">
+                                        <input required value="{{ date('Y-m-d') }}" type="date" name="tgl" class="form-control">
                                     </div>
                                 </div>
-                                <div class="col-lg-5">
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-4">
                                     <div class="form-group">
                                         <label for="">Nama Karyawan</label>
-                                        <select name="id_karyawan" class="form-control select2" id="">
+                                        <select name="id_karyawan[]" class="form-control select2" id="">
                                             <option value="">- Pilih Karyawan -</option>
                                             @foreach ($karyawan as $k)
                                                 <option value="{{ $k->id_karyawan }}">{{ $k->nama_karyawan }}</option>
@@ -153,19 +161,26 @@
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-lg-4">
+                                <div class="col-lg-2">
                                     <div class="form-group">
                                         <label for="">Nominal</label>
-                                        <input required type="text" name="nominal" class="form-control">
+                                        <input required type="text" name="nominal[]" class="form-control">
                                     </div>
                                 </div>
-                                <div class="col-lg-6">
+                                <div class="col-lg-5">
                                     <div class="form-group">
                                         <label for="">Keterangan</label>
-                                        <input required type="text" name="keterangan" class="form-control">
+                                        <input required type="text" name="keterangan[]" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="col-lg-1">
+                                    <div class="form-group">
+                                        <label for="">Aksi</label><br>
+                                        <a id_departemen="{{ Request::get('id_departemen') }}" class="btn btn-sm btn-primary btn_tambah"><i class="fas fa-plus"></i></a>
                                     </div>
                                 </div>
                             </div>
+                            <div id="btn_tambah"></div>
                         </div>
                         <div class="modal-footer">
                             <input type="submit" name="simpan" value="Simpan" id="tombol" class="btn btn-primary">
@@ -205,6 +220,7 @@
     @section('script')
         <script>
             $(document).ready(function() {
+                plusRow(1, 'btn_tambah', 'denda/btn_tambah')
                 $(document).on('click', '.edit', function() {
                     var id_denda = $(this).attr('id_denda')
                     $.ajax({
