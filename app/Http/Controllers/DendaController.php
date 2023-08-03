@@ -15,9 +15,13 @@ class DendaController extends Controller
 
     public function index(Request $r)
     {
+        $tgl1 = $r->tgl1 ?? date('Y-m-01');
+        $tgl2 = $r->tgl2 ?? date('Y-m-0d');
         $data = [
             'title' => 'Data Denda',
             'aktif' => 1,
+            'tgl1' => $tgl1,
+            'tgl2' => $tgl2,
             'id_departemen' => $r->id_departemen,
             'kasbon' => DB::table('denda as a')
                 ->leftJoin('karyawan as b', 'a.id_karyawan', 'b.id_karyawan')
@@ -33,7 +37,7 @@ class DendaController extends Controller
 
     public function create(Request $r)
     {
-        for ($i=0; $i < count($r->id_karyawan); $i++) { 
+        for ($i = 0; $i < count($r->id_karyawan); $i++) {
             $this->tbl->insert([
                 'tgl' => $r->tgl,
                 'id_karyawan' => $r->id_karyawan[$i],
@@ -46,13 +50,29 @@ class DendaController extends Controller
         return redirect()->route('denda', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil ditambahkan');
     }
 
+    public function print(Request $r)
+    {
+        $data = [
+            'title' => 'Data Denda',
+            'id_departemen' => $r->id_departemen,
+            'tgl1' => $r->tgl1,
+            'tgl2' => $r->tgl2,
+            'kasbon' => DB::select("SELECT b.nama_karyawan, sum(a.nominal) as nominal FROM denda a
+                LEFT JOIN karyawan b on a.id_karyawan = b.id_karyawan
+                WHERE a.tgl BETWEEN '$r->tgl1' AND '$r->tgl2' AND a.id_departemen = '$r->id_departemen'
+                GROUP BY a.id_karyawan"),
+        ];
+
+        return view('denda.print', $data);
+    }
+
     public function btn_tambah(Request $r)
     {
         $data = [
             'karyawan' => DB::table('karyawan')->where('id_departemen', $r->id_departemen)->get(),
             'count' => $r->count
         ];
-        return view('denda.btn_tambah',$data);
+        return view('denda.btn_tambah', $data);
     }
 
     public function edit(Request $r)
@@ -61,7 +81,7 @@ class DendaController extends Controller
             'kasbon' => $this->tbl->where('id_denda', $r->id_denda)->first(),
             'karyawan' => DB::table('karyawan')->where('id_departemen', $r->id_departemen)->get()
         ];
-        return view('denda.edit',$data);
+        return view('denda.edit', $data);
     }
 
     public function update(Request $r)

@@ -35,6 +35,14 @@
                             <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#view">
                                 View
                             </button>
+                            <a href="{{ route('denda.print', [
+                                'id_departemen' => $id_departemen,
+                                'tgl1' => $tgl1,
+                                'tgl2' => $tgl2,
+                            ]) }}"
+                                class="btn btn-primary">
+                                <i class="fas fa-print"></i> Print
+                            </a>
                         </div>
 
                         <div class="card-body">

@@ -164,6 +164,7 @@ use Illuminate\Support\Facades\Route;
             Route::get('/denda/btn_tambah', 'btn_tambah');
             Route::get('/denda/delete', 'delete')->name('denda.delete');
             Route::get('/denda/edit', 'edit')->name('denda.edit');
+            Route::get('/denda/print', 'print')->name('denda.print');
             Route::post('/denda/update', 'update')->name('denda.update');
         });
 
