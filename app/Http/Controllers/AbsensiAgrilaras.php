@@ -180,6 +180,7 @@ class AbsensiAgrilaras extends Controller
     return DB::select("SELECT 
                   a.id_karyawan, 
                   a.nama_karyawan, 
+                  a.posisi, 
                   a.tanggal_masuk, 
                   b.g_bulanan, 
                   b.rp_m, 
@@ -317,24 +318,25 @@ class AbsensiAgrilaras extends Controller
     $sheet
       ->setCellValue('A1', 'NO')
       ->setCellValue('B1', 'NAMA KARYAWAN')
-      ->setCellValue('C1', 'SATUAN /HARI')
-      ->setCellValue('D1', 'RP JAM LEMBUR')
-      ->setCellValue('E1', 'TOTAL M')
-      ->setCellValue('F1', 'TOTAL E')
-      ->setCellValue('G1', 'TOTAL SP')
-      ->setCellValue('H1', 'JAM LEMBUR')
-      ->setCellValue('I1', 'TOTAL ABSEN')
-      ->setCellValue('J1', 'RP M')
-      ->setCellValue('K1', 'RP E')
-      ->setCellValue('L1', 'RP SP')
-      ->setCellValue('M1', 'RP LEMBUR')
-      ->setCellValue('N1', 'BULANAN')
-      ->setCellValue('O1', 'TOTAL GAJI')
-      ->setCellValue('P1', 'RP KASBON')
-      ->setCellValue('Q1', 'RP DENDA')
-      ->setCellValue('R1', 'SISA GAJI')
-      ->setCellValue('S1', 'TGL MASUK')
-      ->setCellValue('T1', 'LAMA KERJA');
+      ->setCellValue('C1', 'POSISI')
+      ->setCellValue('D1', 'SATUAN /HARI')
+      ->setCellValue('E1', 'RP JAM LEMBUR')
+      ->setCellValue('F1', 'TOTAL M')
+      ->setCellValue('G1', 'TOTAL E')
+      ->setCellValue('H1', 'TOTAL SP')
+      ->setCellValue('I1', 'JAM LEMBUR')
+      ->setCellValue('J1', 'TOTAL ABSEN')
+      ->setCellValue('K1', 'RP M')
+      ->setCellValue('L1', 'RP E')
+      ->setCellValue('M1', 'RP SP')
+      ->setCellValue('N1', 'RP LEMBUR')
+      ->setCellValue('O1', 'BULANAN')
+      ->setCellValue('P1', 'TOTAL GAJI')
+      ->setCellValue('Q1', 'RP KASBON')
+      ->setCellValue('R1', 'RP DENDA')
+      ->setCellValue('S1', 'SISA GAJI')
+      ->setCellValue('T1', 'TGL MASUK')
+      ->setCellValue('U1', 'LAMA KERJA');
 
     $kolom = 2;
     $no = 1;
@@ -358,24 +360,25 @@ class AbsensiAgrilaras extends Controller
       $sheet
         ->setCellValue('A' . $kolom, $no++)
         ->setCellValue('B' . $kolom, $k->nama_karyawan)
-        ->setCellValue('C' . $kolom, $k->rp_m)
-        ->setCellValue('D' . $kolom, $k->rp_m / 8)
-        ->setCellValue('E' . $kolom, $k->qty_m == '' ? 0 : $k->qty_m)
-        ->setCellValue('F' . $kolom, $k->qty_e == '' ? 0 : $k->qty_e)
-        ->setCellValue('G' . $kolom, $k->qty_sp == '' ? 0 : $k->qty_sp)
-        ->setCellValue('H' . $kolom, $k->lama_lembur == '' ? 0 : $k->lama_lembur / 60)
-        ->setCellValue('I' . $kolom, $ttlAbsen == '' ? 0 : $ttlAbsen)
-        ->setCellValue('J' . $kolom, $k->ttl_gaji_m == '' ? 0 : $k->ttl_gaji_m)
-        ->setCellValue('K' . $kolom, $k->ttl_gaji_e)
-        ->setCellValue('L' . $kolom, $k->ttl_gaji_sp)
-        ->setCellValue('M' . $kolom, $total_lembur)
-        ->setCellValue('N' . $kolom, $k->g_bulanan)
-        ->setCellValue('O' . $kolom, $ttlGajiS + $total_lembur)
-        ->setCellValue('P' . $kolom, $k->kasbon)
-        ->setCellValue('Q' . $kolom, $k->denda)
-        ->setCellValue('R' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
-        ->setCellValue('S' . $kolom, $k->tanggal_masuk)
-        ->setCellValue('T' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
+        ->setCellValue('C' . $kolom, $k->posisi)
+        ->setCellValue('D' . $kolom, $k->rp_m)
+        ->setCellValue('E' . $kolom, $k->rp_m / 8)
+        ->setCellValue('F' . $kolom, $k->qty_m == '' ? 0 : $k->qty_m)
+        ->setCellValue('G' . $kolom, $k->qty_e == '' ? 0 : $k->qty_e)
+        ->setCellValue('H' . $kolom, $k->qty_sp == '' ? 0 : $k->qty_sp)
+        ->setCellValue('I' . $kolom, $k->lama_lembur == '' ? 0 : $k->lama_lembur / 60)
+        ->setCellValue('J' . $kolom, $ttlAbsen == '' ? 0 : $ttlAbsen)
+        ->setCellValue('K' . $kolom, $k->ttl_gaji_m == '' ? 0 : $k->ttl_gaji_m)
+        ->setCellValue('L' . $kolom, $k->ttl_gaji_e)
+        ->setCellValue('M' . $kolom, $k->ttl_gaji_sp)
+        ->setCellValue('N' . $kolom, $total_lembur)
+        ->setCellValue('O' . $kolom, $k->g_bulanan)
+        ->setCellValue('P' . $kolom, $ttlGajiS + $total_lembur)
+        ->setCellValue('Q' . $kolom, $k->kasbon)
+        ->setCellValue('R' . $kolom, $k->denda)
+        ->setCellValue('S' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
+        ->setCellValue('T' . $kolom, $k->tanggal_masuk)
+        ->setCellValue('U' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
       $ttlGajiM += $k->ttl_gaji_m;
       $ttlGajiE += $k->ttl_gaji_e;
       $ttlGajiSp += $k->ttl_gaji_sp;
@@ -388,16 +391,16 @@ class AbsensiAgrilaras extends Controller
       $kolom++;
     }
     $b = count($query) + 2;
-    $sheet->setCellValue('H' . $b, 'TOTAL');
-    $sheet->setCellValue('J' . $b, $ttlGajiM);
-    $sheet->setCellValue('K' . $b, $ttlGajiE);
-    $sheet->setCellValue('L' . $b, $ttlGajiSp);
-    $sheet->setCellValue('M' . $b, $ttllembur);
-    $sheet->setCellValue('N' . $b, $ttlBulanan);
-    $sheet->setCellValue('O' . $b, $ttlGaji + $total_lembur_2);
-    $sheet->setCellValue('P' . $b, $ttlKasbon);
-    $sheet->setCellValue('Q' . $b, $ttlDenda);
-    $sheet->setCellValue('R' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
+    $sheet->setCellValue('I' . $b, 'TOTAL');
+    $sheet->setCellValue('K' . $b, $ttlGajiM);
+    $sheet->setCellValue('L' . $b, $ttlGajiE);
+    $sheet->setCellValue('M' . $b, $ttlGajiSp);
+    $sheet->setCellValue('N' . $b, $ttllembur);
+    $sheet->setCellValue('O' . $b, $ttlBulanan);
+    $sheet->setCellValue('P' . $b, $ttlGaji + $total_lembur_2);
+    $sheet->setCellValue('Q' . $b, $ttlKasbon);
+    $sheet->setCellValue('R' . $b, $ttlDenda);
+    $sheet->setCellValue('S' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
 
     $sheet->getStyle('H' . $b)->getFont()->setBold(true);
     $sheet->getStyle('I' . $b)->getFont()->setBold(true);
@@ -427,7 +430,7 @@ class AbsensiAgrilaras extends Controller
     ];
 
     $batas = count($query) + 1;
-    $sheet->getStyle('A1:S' . $b)->applyFromArray($style);
+    $sheet->getStyle('A1:U' . $b)->applyFromArray($style);
 
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="Gaji Agrilaras.xlsx"');

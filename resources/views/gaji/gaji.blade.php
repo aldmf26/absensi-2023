@@ -85,14 +85,17 @@
                                     <tr>
                                         <th>No</th>
                                         <th>Nama Karyawan</th>
+                                        <th>Posisi</th>
                                         <th>Satuan/Hari</th>
                                         <th>M</th>
                                         <th>Rp M</th>
                                         <th>Bulanan</th>
                                         <th>Jam Lembur</th>
                                         <th>Rp Lembur</th>
-                                        <th>Rp Gaji</th>
                                         <th>Total Gaji</th>
+                                        <th>Rp Kasbon</th>
+                                        <th>Rp Denda</th>
+                                        <th>Sisa Gaji</th>
                                         <th>Lama Kerja</th>
                                     </tr>
                                 </thead>
@@ -111,14 +114,17 @@
                                      <tr>
                                          <td>{{$no++}}</td>
                                          <td>{{$h->nama_karyawan}}</td>
+                                         <td>{{$h->posisi}}</td>
                                          <td>{{number_format($h->rp_m,0)}}</td>
                                          <td>{{number_format($h->qty_m == '' ? 0 : $h->qty_m,0)}}</td>
                                          <td>{{number_format($h->ttl_gaji_m == '' ? 0 : $h->ttl_gaji_m,0)}}</td>
                                          <td>{{number_format($h->g_bulanan,0)}}</td>
                                          <td>{{$h->lama_lembur == '' ? 0 : $h->lama_lembur / 60}}</td> 
                                          <td>{{number_format($h->lama_lembur == '' ? 0 : ($h->lama_lembur / 60) * $h->bayaran,0)}}</td> 
+                                         <td>{{number_format($ttlGajiS + $total_lembur,0)}}</td> 
                                          <td>{{number_format($h->kasbon,0)}}</td> 
-                                         <td>{{number_format($ttlGajiS + $total_lembur - $h->kasbon,0)}}</td> 
+                                         <td>{{number_format($h->denda,0)}}</td> 
+                                         <td>{{number_format($ttlGajiS + $total_lembur - $h->kasbon - $h->denda,0)}}</td> 
                                          <td>{{$tKerja->y. ' Tahun '. $tKerja->m.' Bulan'}}</td> 
                                          
                                      </tr>
