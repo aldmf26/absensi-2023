@@ -61,6 +61,7 @@
                     <tfoot>
                         <tr>
                             <th></th>
+                            <th></th>
                             <th style="text-align: center">Total</th>
                             <th style="text-align: right">{{ number_format($ttlNominal,0) }}</th>
                         </tr>
