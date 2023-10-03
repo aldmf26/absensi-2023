@@ -27,7 +27,7 @@
             <div class="col-lg-6">
                 <div class="row">
                     <div class="col text-start">
-                        <h3>Kasbon</h3>
+                        <h3>Data Denda</h3>
                     </div>
                     <div class="col text-end">
                         <span style="font-size:10px;"><em><b>Tanggal Cetak: {{ date('d-m-Y') }}, {{ ucwords(auth()->user()->name) }}</b></em></span>
@@ -38,6 +38,7 @@
                         <tr>
                             <th class="dhead" width="5">#</th>
                             <th class="dhead">Nama Karyawan</th>
+                            <th class="dhead">Keterangan</th>
                             <th class="dhead" style="text-align: right" width="15%">Nominal</th>
                         </tr>
                     </thead>
@@ -52,6 +53,7 @@
                             <tr>
                                 <td>{{ $no+1 }}</td>
                                 <td>{{ ucwords($d->nama_karyawan) }}</td>
+                                <td>{{ ucwords($d->ket) }}</td>
                                 <td style="text-align: right">{{ number_format($d->nominal,0) }}</td>
                             </tr>
                         @endforeach
