@@ -59,7 +59,8 @@ class KasbonAgrilarasController extends Controller
                 'id_karyawan' => $r->id_karyawan[$i],
                 'nominal' => $r->nominal[$i],
                 'id_departemen' => $r->id_departemen,
-                'admin' => auth()->user()->nama
+                'admin' => auth()->user()->nama,
+                'tgl_input' => date('Y-m-d'),
             ]);
         }
         return redirect()->route('kasbonAgrilaras', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil ditambahkan');
@@ -89,7 +90,8 @@ class KasbonAgrilarasController extends Controller
             'tgl' => $r->tgl,
             'id_karyawan' => $r->id_karyawan,
             'nominal' => $r->nominal,
-            'admin' => auth()->user()->nama
+            'admin' => auth()->user()->nama,
+            'tgl_input' => date('Y-m-d'),
         ]);
         return redirect()->route('kasbonAgrilaras', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil di update');
     }

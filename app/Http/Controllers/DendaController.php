@@ -44,7 +44,9 @@ class DendaController extends Controller
                 'nominal' => $r->nominal[$i],
                 'ket' => $r->keterangan[$i],
                 'id_departemen' => $r->id_departemen,
-                'admin' => auth()->user()->nama
+                'admin' => auth()->user()->nama,
+            'tgl_input' => date('Y-m-d'),
+
             ]);
         }
         return redirect()->route('denda', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil ditambahkan');
@@ -91,6 +93,8 @@ class DendaController extends Controller
             'id_karyawan' => $r->id_karyawan,
             'nominal' => $r->nominal,
             'ket' => $r->keterangan,
+            'tgl_input' => date('Y-m-d'),
+
             'admin' => auth()->user()->nama
         ]);
         return redirect()->route('denda', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil di update');

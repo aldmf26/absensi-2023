@@ -94,7 +94,7 @@ class AbsensiAgrilaras extends Controller
       ['id_karyawan', $id_karyawan],
       ['status', $status],
       ['tanggal_masuk', $tgl],
-    ])->first();
+    ])->delete();
 
     if ($ada) {
       return true;
@@ -131,21 +131,25 @@ class AbsensiAgrilaras extends Controller
 
   public function input_agrilaras(Request $request)
   {
-    $cek = Absensi_Agrilaras::where([['id_karyawan', $request->id_karyawan], ['tanggal_masuk', $request->tanggal_masuk]])->first();
-    if ($cek) {
+    $status = $request->status;
+    $id_karyawan = $request->id_karyawan;
+    $tgl = $request->tanggal;
+    $ada = Absensi_Agrilaras::where([
+      ['id_karyawan', $id_karyawan],
+      ['status', $status],
+      ['tanggal_masuk', $tgl],
+    ])->delete();
+
+    if ($ada) {
       return true;
     } else {
-      $data = [
-        'id_karyawan' => $request->id_karyawan,
-        'status' => $request->status,
-        'tanggal_masuk' => $request->tanggal,
+      $data =  [
+        'status' => $status,
+        'id_karyawan' => $id_karyawan,
+        'tanggal_masuk' => $tgl,
         'admin' => Auth::user()->id,
-        // 'admin' => $request->admin,
       ];
-
-
       Absensi_Agrilaras::create($data);
-      return true;
     }
   }
 
