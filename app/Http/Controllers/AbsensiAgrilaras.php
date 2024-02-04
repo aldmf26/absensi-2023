@@ -319,28 +319,32 @@ class AbsensiAgrilaras extends Controller
     $sheet->getColumnDimension('N')->setWidth(10);
     $sheet->getColumnDimension('O')->setWidth(15);
 
+
     $sheet
       ->setCellValue('A1', 'NO')
       ->setCellValue('B1', 'NAMA KARYAWAN')
       ->setCellValue('C1', 'POSISI')
-      ->setCellValue('D1', 'SATUAN /HARI')
-      ->setCellValue('E1', 'RP JAM LEMBUR')
-      ->setCellValue('F1', 'TOTAL M')
-      ->setCellValue('G1', 'TOTAL E')
-      ->setCellValue('H1', 'TOTAL SP')
-      ->setCellValue('I1', 'JAM LEMBUR')
-      ->setCellValue('J1', 'TOTAL ABSEN')
-      ->setCellValue('K1', 'RP M')
-      ->setCellValue('L1', 'RP E')
-      ->setCellValue('M1', 'RP SP')
-      ->setCellValue('N1', 'RP LEMBUR')
-      ->setCellValue('O1', 'BULANAN')
-      ->setCellValue('P1', 'TOTAL GAJI')
-      ->setCellValue('Q1', 'RP KASBON')
-      ->setCellValue('R1', 'RP DENDA')
-      ->setCellValue('S1', 'SISA GAJI')
-      ->setCellValue('T1', 'TGL MASUK')
-      ->setCellValue('U1', 'LAMA KERJA');
+      ->setCellValue('D1', 'GAJI')
+      ->setCellValue('E1', 'SATUAN GAJI')
+      ->setCellValue('F1', 'RP JAM LEMBUR')
+      ->setCellValue('G1', 'TOTAL ABSEN HARIAN')
+      ->setCellValue('H1', 'JAM LEMBUR')
+      ->setCellValue('I1', 'TOTAL RP HARIAN')
+      ->setCellValue('J1', 'RP LEMBUR')
+      ->setCellValue('K1', 'BULANAN')
+      ->setCellValue('L1', 'TOTAL GAJI')
+      ->setCellValue('M1', 'RP KASBON')
+      ->setCellValue('N1', 'RP DENDA')
+      ->setCellValue('O1', 'SISA GAJI')
+      ->setCellValue('P1', 'TGL MASUK')
+      ->setCellValue('Q1', 'LAMA KERJA');
+    // $sheet->getStyle("A$row:T$r   ow")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('92D050');
+    $stylebgRed = [
+      'fill' => [
+        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+        'startColor' => array('argb' => '92D050')
+      ]
+    ];
 
     $kolom = 2;
     $no = 1;
@@ -354,6 +358,7 @@ class AbsensiAgrilaras extends Controller
     $ttlDenda = 0;
     $ttllembur = 0;
     $total_lembur_2 = 0;
+
     foreach ($query as $k) {
       $ttlAbsen = $k->qty_m + $k->qty_e + $k->qty_sp;
       $ttlGajiS = $k->ttl_gaji_m + $k->ttl_gaji_e + $k->ttl_gaji_sp + $k->g_bulanan;
@@ -361,28 +366,25 @@ class AbsensiAgrilaras extends Controller
       $totalKerja = new DateTime($k->tanggal_masuk);
       $today = new DateTime();
       $tKerja = $today->diff($totalKerja);
+
       $sheet
         ->setCellValue('A' . $kolom, $no++)
         ->setCellValue('B' . $kolom, $k->nama_karyawan)
         ->setCellValue('C' . $kolom, $k->posisi)
         ->setCellValue('D' . $kolom, $k->rp_m)
-        ->setCellValue('E' . $kolom, $k->rp_m / 8)
-        ->setCellValue('F' . $kolom, $k->qty_m == '' ? 0 : $k->qty_m)
-        ->setCellValue('G' . $kolom, $k->qty_e == '' ? 0 : $k->qty_e)
-        ->setCellValue('H' . $kolom, $k->qty_sp == '' ? 0 : $k->qty_sp)
-        ->setCellValue('I' . $kolom, $k->lama_lembur == '' ? 0 : $k->lama_lembur / 60)
-        ->setCellValue('J' . $kolom, $ttlAbsen == '' ? 0 : $ttlAbsen)
-        ->setCellValue('K' . $kolom, $k->ttl_gaji_m == '' ? 0 : $k->ttl_gaji_m)
-        ->setCellValue('L' . $kolom, $k->ttl_gaji_e)
-        ->setCellValue('M' . $kolom, $k->ttl_gaji_sp)
-        ->setCellValue('N' . $kolom, $total_lembur)
-        ->setCellValue('O' . $kolom, $k->g_bulanan)
-        ->setCellValue('P' . $kolom, $ttlGajiS + $total_lembur)
-        ->setCellValue('Q' . $kolom, $k->kasbon)
-        ->setCellValue('R' . $kolom, $k->denda)
-        ->setCellValue('S' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
-        ->setCellValue('T' . $kolom, $k->tanggal_masuk)
-        ->setCellValue('U' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
+        ->setCellValue('E' . $kolom, $k->rp_m == 0 ? 'Bulanan' : 'Harian')
+        ->setCellValue('F' . $kolom, $k->rp_m / 8)
+        ->setCellValue('G' . $kolom, $k->qty_m == '' ? 0 : $k->qty_m)
+        ->setCellValue('H' . $kolom, $k->lama_lembur == '' ? 0 : $k->lama_lembur / 60)
+        ->setCellValue('I' . $kolom, $k->ttl_gaji_m == '' ? 0 : $k->ttl_gaji_m)
+        ->setCellValue('J' . $kolom, $total_lembur)
+        ->setCellValue('K' . $kolom, $k->g_bulanan)
+        ->setCellValue('L' . $kolom, $ttlGajiS + $total_lembur)
+        ->setCellValue('M' . $kolom, $k->kasbon)
+        ->setCellValue('N' . $kolom, $k->denda)
+        ->setCellValue('O' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
+        ->setCellValue('P' . $kolom, $k->tanggal_masuk)
+        ->setCellValue('Q' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
       $ttlGajiM += $k->ttl_gaji_m;
       $ttlGajiE += $k->ttl_gaji_e;
       $ttlGajiSp += $k->ttl_gaji_sp;
@@ -392,19 +394,30 @@ class AbsensiAgrilaras extends Controller
       $ttlDenda += $k->denda;
       $ttlGaji += $k->ttl_gaji_m + $k->ttl_gaji_e + $k->ttl_gaji_sp + $k->g_bulanan;
       $total_lembur_2 += $total_lembur;
+      if ($k->qty_m > 28) {
+        // Set the background color to red
+        $sheet->getStyle("G$kolom")
+          ->applyFromArray($stylebgRed); // Red color
+      }
+      // if (29 > 28) {
+      //   $sheet->getStyle("G1")
+      //     ->getFill()
+      //     ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+      //     ->getStartColor()
+      //     ->setARGB('92D050');
+      // }
+
       $kolom++;
     }
     $b = count($query) + 2;
-    $sheet->setCellValue('I' . $b, 'TOTAL');
-    $sheet->setCellValue('K' . $b, $ttlGajiM);
-    $sheet->setCellValue('L' . $b, $ttlGajiE);
-    $sheet->setCellValue('M' . $b, $ttlGajiSp);
-    $sheet->setCellValue('N' . $b, $ttllembur);
-    $sheet->setCellValue('O' . $b, $ttlBulanan);
-    $sheet->setCellValue('P' . $b, $ttlGaji + $total_lembur_2);
-    $sheet->setCellValue('Q' . $b, $ttlKasbon);
-    $sheet->setCellValue('R' . $b, $ttlDenda);
-    $sheet->setCellValue('S' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
+    $sheet->setCellValue('H' . $b, 'TOTAL');
+    $sheet->setCellValue('I' . $b, $ttlGajiM);
+    $sheet->setCellValue('J' . $b, $ttllembur);
+    $sheet->setCellValue('K' . $b, $ttlBulanan);
+    $sheet->setCellValue('L' . $b, $ttlGaji + $total_lembur_2);
+    $sheet->setCellValue('M' . $b, $ttlKasbon);
+    $sheet->setCellValue('N' . $b, $ttlDenda);
+    $sheet->setCellValue('O' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
 
     $sheet->getStyle('H' . $b)->getFont()->setBold(true);
     $sheet->getStyle('I' . $b)->getFont()->setBold(true);
@@ -413,14 +426,11 @@ class AbsensiAgrilaras extends Controller
     $sheet->getStyle('L' . $b)->getFont()->setBold(true);
     $sheet->getStyle('M' . $b)->getFont()->setBold(true);
     $sheet->getStyle('N' . $b)->getFont()->setBold(true);
-    $sheet->getStyle('Q' . $b)->getFont()->setBold(true);
     $sheet->getStyle('O' . $b)->getFont()->setBold(true);
-    $sheet->getStyle('P' . $b)->getFont()->setBold(true);
-    $sheet->getStyle('Q' . $b)->getFont()->setBold(true);
-    $sheet->getStyle('R' . $b)->getFont()->setBold(true);
 
 
     $writer = new Xlsx($spreadsheet);
+  
     $style = [
       'borders' => [
         'alignment' => [
@@ -430,7 +440,7 @@ class AbsensiAgrilaras extends Controller
         'allBorders' => [
           'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
         ],
-      ],
+      ]
     ];
 
     $batas = count($query) + 1;

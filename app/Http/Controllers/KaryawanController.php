@@ -78,8 +78,8 @@ class KaryawanController extends Controller
         $data2 = [
             'id_karyawan' => $kr->id,
             'rp_m' => $request->rp_m,
-            'rp_e' => $request->rp_e,
-            'rp_sp' => $request->rp_sp,
+            'rp_e' => $request->rp_e ?? 0,
+            'rp_sp' => $request->rp_sp ?? 0,
             'g_bulanan' => $request->g_bulanan,
         ];
         Gaji::create($data2);
@@ -101,8 +101,8 @@ class KaryawanController extends Controller
         if($cek) {
             $data2 = [
                 'rp_m' => $request->rp_m,
-                'rp_e' => $request->rp_e,
-                'rp_sp' => $request->rp_sp,
+                'rp_e' => $request->rp_e ?? 0,
+                'rp_sp' => $request->rp_sp ?? 0,
                 'g_bulanan' => $request->g_bulanan,
             ];
             Gaji::where('id_karyawan', $request->id_karyawan)->update($data2);
@@ -110,8 +110,8 @@ class KaryawanController extends Controller
             $data3 = [
                 'id_karyawan' => $request->id_karyawan,
                 'rp_m' => $request->rp_m,
-                'rp_e' => $request->rp_e,
-                'rp_sp' => $request->rp_sp,
+                'rp_e' => $request->rp_e ?? 0,
+                'rp_sp' => $request->rp_sp ?? 0,
                 'g_bulanan' => $request->g_bulanan,
             ];
             Gaji::create($data3);

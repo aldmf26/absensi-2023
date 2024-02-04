@@ -150,19 +150,12 @@
                                                 @endforeach
                                             </div>
                                             <div class="row form-group">
-                                                <div class="col-lg-3">                
+                                                <div class="col-lg-6">                
                                                     <label for="">Rp M</label>
                                                     <input required type="number" min="0" name="rp_m" class="form-control">
                                                 </div>
-                                                <div class="col-lg-3">                
-                                                    <label for="">Rp E</label>
-                                                    <input type="number" min="0" name="rp_e" class="form-control">
-                                                </div>
-                                                <div class="col-lg-3">                
-                                                    <label for="">Rp SP</label>
-                                                    <input type="number" min="0" name="rp_sp" class="form-control">
-                                                </div>
-                                                <div class="col-lg-3">                
+                                           
+                                                <div class="col-lg-6">                
                                                     <label for="">Rp Bulanan</label>
                                                     <input type="number" min="0" name="g_bulanan" class="form-control">
                                                 </div>
@@ -196,8 +189,6 @@
                                         <th>Posisi</th>
                                         <th>Departemen</th>
                                         <th>Rp M</th>
-                                        <th>Rp E</th>
-                                        <th>Rp SP</th>
                                         <th>Bulanan</th>
                                         <th>Aksi</th>
                                     </tr>
@@ -216,8 +207,6 @@
                                             <td>{{ $d->posisi }}</td>
                                             <td>{{ $d->nama_departemen }}</td>
                                             <td>{{ $d->rp_m }}</td>
-                                            <td>{{ $d->rp_e == '' ? '0' : number_format($d->rp_e,0) }}</td>
-                                            <td>{{ $d->rp_sp == '' ? '0' : number_format($d->rp_sp,0) }}</td>
                                             <td>{{ $d->g_bulanan == '' ? '0' : number_format($d->g_bulanan,0) }}</td>
                                             <td>
                                                 <a class="btn btn-sm btn-success" data-toggle="modal"
@@ -292,36 +281,20 @@
                                         $ada = DB::table('tb_gaji')->where('id_karyawan', $d->id_karyawan)->first();
                                     @endphp
                                     @if ($ada)
-                                    <div class="col-lg-3">                
+                                    <div class="col-lg-6">                
                                         <label for="">Rp M</label>
                                         <input value="{{ $ada->rp_m }}" type="number" min="0" name="rp_m" class="form-control">
                                     </div>
-                                    <div class="col-lg-3">                
-                                        <label for="">Rp E</label>
-                                        <input value="{{ $ada->rp_e }}" type="number" min="0" name="rp_e" class="form-control">
-                                    </div>
-                                    <div class="col-lg-3">                
-                                        <label for="">Rp SP</label>
-                                        <input value="{{ $ada->rp_sp }}" type="number" min="0" name="rp_sp" class="form-control">
-                                    </div>
-                                    <div class="col-lg-3">                
+                                    <div class="col-lg-6">                
                                         <label for="">Rp Bulanan</label>
                                         <input value="{{ $ada->g_bulanan }}" type="number" min="0" name="g_bulanan" class="form-control">
                                     </div>
                                     @else
-                                    <div class="col-lg-3">                
+                                    <div class="col-lg-6">                
                                         <label for="">Rp M</label>
                                         <input  type="number" min="0" name="rp_m" class="form-control">
                                     </div>
-                                    <div class="col-lg-3">                
-                                        <label for="">Rp E</label>
-                                        <input  type="number" min="0" name="rp_e" class="form-control">
-                                    </div>
-                                    <div class="col-lg-3">                
-                                        <label for="">Rp SP</label>
-                                        <input  type="number" min="0" name="rp_sp" class="form-control">
-                                    </div>
-                                    <div class="col-lg-3">                
+                                    <div class="col-lg-6">                
                                         <label for="">Rp Bulanan</label>
                                         <input  type="number" min="0" name="g_bulanan" class="form-control">
                                     </div>
