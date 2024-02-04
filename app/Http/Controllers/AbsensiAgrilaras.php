@@ -444,7 +444,7 @@ class AbsensiAgrilaras extends Controller
     ];
 
     $batas = count($query) + 1;
-    $sheet->getStyle('A1:U' . $b)->applyFromArray($style);
+    $sheet->getStyle('A1:Q' . $b)->applyFromArray($style);
 
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="Gaji Agrilaras.xlsx"');
