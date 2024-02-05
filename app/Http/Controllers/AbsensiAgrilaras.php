@@ -324,20 +324,19 @@ class AbsensiAgrilaras extends Controller
       ->setCellValue('A1', 'NO')
       ->setCellValue('B1', 'NAMA KARYAWAN')
       ->setCellValue('C1', 'POSISI')
-      ->setCellValue('D1', 'GAJI')
-      ->setCellValue('E1', 'SATUAN GAJI')
+      ->setCellValue('D1', 'RP HARIAN')
+      ->setCellValue('E1', 'RP BULANAN')
       ->setCellValue('F1', 'RP JAM LEMBUR')
       ->setCellValue('G1', 'TOTAL ABSEN HARIAN')
       ->setCellValue('H1', 'JAM LEMBUR')
       ->setCellValue('I1', 'TOTAL RP HARIAN')
       ->setCellValue('J1', 'RP LEMBUR')
-      ->setCellValue('K1', 'BULANAN')
-      ->setCellValue('L1', 'TOTAL GAJI')
-      ->setCellValue('M1', 'RP KASBON')
-      ->setCellValue('N1', 'RP DENDA')
-      ->setCellValue('O1', 'SISA GAJI')
-      ->setCellValue('P1', 'TGL MASUK')
-      ->setCellValue('Q1', 'LAMA KERJA');
+      ->setCellValue('K1', 'TOTAL GAJI')
+      ->setCellValue('L1', 'RP KASBON')
+      ->setCellValue('M1', 'RP DENDA')
+      ->setCellValue('N1', 'SISA GAJI')
+      ->setCellValue('O1', 'TGL MASUK')
+      ->setCellValue('P1', 'LAMA KERJA');
     // $sheet->getStyle("A$row:T$r   ow")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('92D050');
     $stylebgRed = [
       'fill' => [
@@ -372,19 +371,18 @@ class AbsensiAgrilaras extends Controller
         ->setCellValue('B' . $kolom, $k->nama_karyawan)
         ->setCellValue('C' . $kolom, $k->posisi)
         ->setCellValue('D' . $kolom, $k->rp_m)
-        ->setCellValue('E' . $kolom, $k->rp_m == 0 ? 'Bulanan' : 'Harian')
+        ->setCellValue('E' . $kolom, $k->g_bulanan)
         ->setCellValue('F' . $kolom, $k->rp_m / 8)
         ->setCellValue('G' . $kolom, $k->qty_m == '' ? 0 : $k->qty_m)
         ->setCellValue('H' . $kolom, $k->lama_lembur == '' ? 0 : $k->lama_lembur / 60)
         ->setCellValue('I' . $kolom, $k->ttl_gaji_m == '' ? 0 : $k->ttl_gaji_m)
         ->setCellValue('J' . $kolom, $total_lembur)
-        ->setCellValue('K' . $kolom, $k->g_bulanan)
-        ->setCellValue('L' . $kolom, $ttlGajiS + $total_lembur)
-        ->setCellValue('M' . $kolom, $k->kasbon)
-        ->setCellValue('N' . $kolom, $k->denda)
-        ->setCellValue('O' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
-        ->setCellValue('P' . $kolom, $k->tanggal_masuk)
-        ->setCellValue('Q' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
+        ->setCellValue('K' . $kolom, $ttlGajiS + $total_lembur)
+        ->setCellValue('L' . $kolom, $k->kasbon)
+        ->setCellValue('M' . $kolom, $k->denda)
+        ->setCellValue('N' . $kolom, $ttlGajiS + $total_lembur - $k->kasbon - $k->denda)
+        ->setCellValue('O' . $kolom, $k->tanggal_masuk)
+        ->setCellValue('P' . $kolom, $tKerja->y . ' Tahun ' . $tKerja->m . ' Bulan');
       $ttlGajiM += $k->ttl_gaji_m;
       $ttlGajiE += $k->ttl_gaji_e;
       $ttlGajiSp += $k->ttl_gaji_sp;
@@ -410,15 +408,16 @@ class AbsensiAgrilaras extends Controller
       $kolom++;
     }
     $b = count($query) + 2;
+    $sheet->setCellValue('E' . $b, $ttlBulanan);
     $sheet->setCellValue('H' . $b, 'TOTAL');
     $sheet->setCellValue('I' . $b, $ttlGajiM);
     $sheet->setCellValue('J' . $b, $ttllembur);
-    $sheet->setCellValue('K' . $b, $ttlBulanan);
-    $sheet->setCellValue('L' . $b, $ttlGaji + $total_lembur_2);
-    $sheet->setCellValue('M' . $b, $ttlKasbon);
-    $sheet->setCellValue('N' . $b, $ttlDenda);
-    $sheet->setCellValue('O' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
+    $sheet->setCellValue('K' . $b, $ttlGaji + $total_lembur_2);
+    $sheet->setCellValue('L' . $b, $ttlKasbon);
+    $sheet->setCellValue('M' . $b, $ttlDenda);
+    $sheet->setCellValue('N' . $b, $ttlGaji + $total_lembur_2 - $ttlKasbon - $ttlDenda);
 
+    $sheet->getStyle('E' . $b)->getFont()->setBold(true);
     $sheet->getStyle('H' . $b)->getFont()->setBold(true);
     $sheet->getStyle('I' . $b)->getFont()->setBold(true);
     $sheet->getStyle('J' . $b)->getFont()->setBold(true);
@@ -426,7 +425,6 @@ class AbsensiAgrilaras extends Controller
     $sheet->getStyle('L' . $b)->getFont()->setBold(true);
     $sheet->getStyle('M' . $b)->getFont()->setBold(true);
     $sheet->getStyle('N' . $b)->getFont()->setBold(true);
-    $sheet->getStyle('O' . $b)->getFont()->setBold(true);
 
 
     $writer = new Xlsx($spreadsheet);
@@ -444,7 +442,7 @@ class AbsensiAgrilaras extends Controller
     ];
 
     $batas = count($query) + 1;
-    $sheet->getStyle('A1:Q' . $b)->applyFromArray($style);
+    $sheet->getStyle('A1:P' . $b)->applyFromArray($style);
 
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     header('Content-Disposition: attachment;filename="Gaji Agrilaras.xlsx"');
