@@ -206,8 +206,8 @@
                                             <td>{{ $d->tanggal_masuk }}</td>
                                             <td>{{ $d->posisi }}</td>
                                             <td>{{ $d->nama_departemen }}</td>
-                                            <td>{{ $d->rp_m }}</td>
-                                            <td>{{ $d->g_bulanan == '' ? '0' : number_format($d->g_bulanan,0) }}</td>
+                                            <td>{{ number_format($d->rp_m,0) }}</td>
+                                            <td>{{ number_format($d->g_bulanan,0) == '' ? '0' : number_format($d->g_bulanan,0) }}</td>
                                             <td>
                                                 <a class="btn btn-sm btn-success" data-toggle="modal"
                                                     data-target="#editKaryawan{{ $d->id_karyawan }}"><i
