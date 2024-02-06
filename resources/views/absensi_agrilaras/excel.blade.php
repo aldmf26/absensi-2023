@@ -56,29 +56,36 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                                 ->first();
 
                         @endphp
-                        @if ($data->status == 'M')
-                            <td align="center" style="color: green;">
-                                M
-                            </td>
-                            @php
-                                $totalM++;
-                            @endphp
-                        @endif
-                        @if ($data->status == 'CT')
-                            <td align="center" style="color: green;">
-                                CT
-                            </td>
-                            @php
-                                $totalCT++;
-                            @endphp
-                        @endif
-                        @if ($data->status != 'M' && $data->status != 'CT')
-                            <td>
-                                OFF
-                            </td>
-                            @php
-                                $totalOff++;
-                            @endphp
+                        @if ($data)
+                            @if ($data->status == 'M')
+                                <td align="center" style="color: green;">
+                                    M
+                                </td>
+                                @php
+                                    $totalM++;
+                                @endphp
+                            @elseif($data->status == 'CT')
+                                <td align="center" style="color: green;">
+                                    CT
+                                </td>
+                                @php
+                                    $totalCT++;
+                                @endphp
+                            @else
+                                <td>
+                                    OFF
+                                </td>
+                                @php
+                                    $totalOff++;
+                                @endphp
+                            @endif
+                        @else
+                        <td>
+                            OFF
+                        </td>
+                        @php
+                            $totalOff++;
+                        @endphp
                         @endif
                     @endfor
                     @php
