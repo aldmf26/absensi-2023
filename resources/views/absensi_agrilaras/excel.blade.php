@@ -16,7 +16,7 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
             <tr>
                 @php
                     $tgl = getdate();
-                    
+
                     $tanggal = cal_days_in_month(CAL_GREGORIAN, $bulan, $tahun);
                     $total = $tanggal;
                 @endphp
@@ -33,7 +33,7 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
         <tbody>
             @php
                 $no = 1;
-                
+
             @endphp
 
             @foreach ($karyawan as $d)
@@ -54,9 +54,8 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                                 ->whereMonth('tanggal_masuk', '=', $bulan)
                                 ->whereYear('tanggal_masuk', '=', $tahun)
                                 ->first();
-                            
+
                         @endphp
-                        <?php if($data) { ?>
                         @if ($data->status == 'M')
                             <td align="center" style="color: green;">
                                 M
@@ -64,14 +63,16 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                             @php
                                 $totalM++;
                             @endphp
-                        @elseif ($data->status == 'CT')
+                        @endif
+                        @if ($data->status == 'CT')
                             <td align="center" style="color: green;">
                                 CT
                             </td>
                             @php
                                 $totalCT++;
                             @endphp
-                        @else
+                        @endif
+                        @if ($data->status != 'M' && $data->status != 'CT')
                             <td>
                                 OFF
                             </td>
@@ -79,14 +80,6 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                                 $totalOff++;
                             @endphp
                         @endif
-                        <?php }else { ?>
-                        <td align="center">
-                            OFF
-                        </td>
-                        @php
-                            $totalOff++;
-                        @endphp
-                        <?php } ?>
                     @endfor
                     @php
                         $to = 1;
@@ -99,7 +92,6 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                     @php
                         continue;
                     @endphp
-
                 @else
                     @php
                         break;
