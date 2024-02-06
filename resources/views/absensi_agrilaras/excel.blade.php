@@ -26,6 +26,7 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                     <th>{{ $i }}</th>
                 @endfor
                 <th>M</th>
+                <th>CT</th>
                 <th>OFF</th>
             </tr>
         </thead>
@@ -39,6 +40,7 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                 @php
                     $totalOff = 0;
                     $totalM = 0;
+                    $totalCT = 0;
                 @endphp
                 <tr>
                     <td align="center">{{ $d->id_karyawan }}</td>
@@ -62,6 +64,13 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                             @php
                                 $totalM++;
                             @endphp
+                        @elseif ($data->status == 'ct')
+                            <td align="center" style="color: green;">
+                                CT
+                            </td>
+                            @php
+                                $totalCT++;
+                            @endphp
                         @else
                             <td>
                                 OFF
@@ -83,6 +92,7 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                         $to = 1;
                     @endphp
                     <td>{{ $totalM }} </td>
+                    <td>{{ $totalCT }} </td>
                     <td>{{ $totalOff }} </td>
                 </tr>
                 @if ($d->id_karyawan == $d->id_karyawan)
