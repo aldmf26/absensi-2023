@@ -64,7 +64,7 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                             @php
                                 $totalM++;
                             @endphp
-                        @elseif ($data->status == 'ct')
+                        @elseif ($data->status == 'CT')
                             <td align="center" style="color: green;">
                                 CT
                             </td>
@@ -79,14 +79,6 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                                 $totalOff++;
                             @endphp
                         @endif
-                        <?php }else { ?>
-                        <td align="center">
-                            OFF
-                        </td>
-                        @php
-                            $totalOff++;
-                        @endphp
-                        <?php } ?>
                     @endfor
                     @php
                         $to = 1;
