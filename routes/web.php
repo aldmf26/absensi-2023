@@ -149,6 +149,8 @@ use Illuminate\Support\Facades\Route;
     Route::controller(KasbonAgrilarasController::class)
         ->group(function () {
             Route::get('/kasbonAgrilaras', 'index')->name('kasbonAgrilaras');
+            Route::get('/cuti', 'cuti')->name('cuti');
+            Route::post('/cuti', 'cutiCreate')->name('cuti.create');
             Route::post('/kasbonAgrilaras', 'create')->name('kasbonAgrilaras.create');
             Route::get('/kasbon/btn_tambah', 'btn_tambah');
             Route::get('/kasbonAgrilaras/delete', 'delete')->name('kasbonAgrilaras.delete');

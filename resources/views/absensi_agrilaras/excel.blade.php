@@ -53,7 +53,7 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                                 ->whereDay('tanggal_masuk', '=', $i)
                                 ->whereMonth('tanggal_masuk', '=', $bulan)
                                 ->whereYear('tanggal_masuk', '=', $tahun)
-                                ->first();
+                                ->firs  t();
 
                         @endphp
                         @if ($data)
@@ -80,12 +80,12 @@ header('Content-Disposition: attachmen; filename=Absensi Agri laras.xls');
                                 @endphp
                             @endif
                         @else
-                        <td>
-                            OFF
-                        </td>
-                        @php
-                            $totalOff++;
-                        @endphp
+                            <td>
+                                OFF
+                            </td>
+                            @php
+                                $totalOff++;
+                            @endphp
                         @endif
                     @endfor
                     @php

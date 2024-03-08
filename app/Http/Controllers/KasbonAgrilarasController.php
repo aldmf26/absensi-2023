@@ -13,6 +13,24 @@ class KasbonAgrilarasController extends Controller
         $this->tbl = DB::table('kasbon');
     }
 
+    public function cuti(Request $r)
+    {
+        $data = [
+            'title' => 'Cuti'
+        ];
+        return view('cuti.cuti',$data);
+    }
+
+    public function cutiCreate(Request $r)
+    {
+        DB::table('cuti')->insert([
+            'id_karyawan' => $r->id_karyawan,
+            'tgl' => $r->tgl,
+            'alasan' => $r->alasan,
+        ]);
+        return redirect()->route('cuti')->with('sukses', 'Data Berhasil');
+    }
+
     public function index(Request $r)
     {
         $tgl1 = $r->tgl1 ?? date('Y-m-01');
