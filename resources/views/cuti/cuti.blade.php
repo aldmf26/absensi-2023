@@ -86,13 +86,16 @@
             <tr>
                 <th>#</th>
                 <th>Nama</th>
+                <th>Tgl</th>
                 <th>Ttl</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody x-data="{
+            openRows: [],
+        }">
             @php
 
-                $datas = DB::SELECT("SELECT b.nama_karyawan as nama, count(*) as ttl FROM cuti as a 
+                $datas = DB::SELECT("SELECT a.id_karyawan,b.nama_karyawan as nama, count(*) as ttl FROM cuti as a 
             JOIN karyawan as b on a.id_karyawan = b.id_karyawan
             WHERE month(a.tgl) = '$bulan' AND year(a.tgl) = '$tahun' GROUP BY a.id_karyawan");
             @endphp
@@ -100,6 +103,24 @@
                 <tr>
                     <td>{{ $i + 1 }}</td>
                     <td>{{ $d->nama }}</td>
+                    <td>
+                        <button
+                            x-on:click="openRows.includes({{ $i }}) ? openRows = openRows.filter(item => item !== {{ $i }}) : openRows.push({{ $i }})"
+                            type="button" class="btn btn-sm btn-warning">show</button>
+                        <ul x-show="openRows.includes({{ $i }})">
+                            @php
+                                $tgl = DB::table('cuti')
+                                    ->where('id_karyawan', $d->id_karyawan)
+                                    ->get();
+                            @endphp
+                            @foreach ($tgl as $t)
+                                <li>
+                                    <a href="{{ route('cuti.delete', [$d->id_karyawan, $t->tgl]) }}"
+                                        onclick="return confirm('Yakin dihapus ?')">{{ $t->tgl }}</a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </td>
                     <td>{{ $d->ttl }}</td>
                 </tr>
             @endforeach

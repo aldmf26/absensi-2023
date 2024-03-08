@@ -149,6 +149,7 @@ use Illuminate\Support\Facades\Route;
         ->group(function () {
             Route::get('/kasbonAgrilaras', 'index')->name('kasbonAgrilaras');
             Route::get('/cuti', 'cuti')->name('cuti');
+            Route::get('/cutiDelete/{id}/{tgl}', 'cutiDelete')->name('cuti.delete');
             Route::post('/cuti', 'cutiCreate')->name('cuti.create');
             Route::post('/kasbonAgrilaras', 'create')->name('kasbonAgrilaras.create');
             Route::get('/kasbon/btn_tambah', 'btn_tambah');

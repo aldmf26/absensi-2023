@@ -30,6 +30,11 @@ class KasbonAgrilarasController extends Controller
         ]);
         return redirect()->route('cuti')->with('sukses', 'Data Berhasil');
     }
+    public function cutiDelete($id,$tgl)
+    {
+        DB::table('cuti')->where([['id_karyawan', $id],['tgl', $tgl]])->delete();
+        return redirect()->route('cuti')->with('sukses', 'Data Berhasil');
+    }
 
     public function index(Request $r)
     {
