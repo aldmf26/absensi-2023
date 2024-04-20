@@ -38,16 +38,24 @@ class DendaController extends Controller
     public function create(Request $r)
     {
         for ($i = 0; $i < count($r->id_karyawan); $i++) {
-            $this->tbl->insert([
-                'tgl' => $r->tgl,
-                'id_karyawan' => $r->id_karyawan[$i],
-                'nominal' => $r->nominal[$i],
-                'ket' => $r->keterangan[$i],
-                'id_departemen' => $r->id_departemen,
-                'admin' => auth()->user()->nama,
-            'tgl_input' => date('Y-m-d'),
-
-            ]);
+            $cek = $this->tbl->where([
+                ['id_karyawan', $r->id_karyawan[$i]],
+                ['nominal', $r->nominal[$i]],
+                ['ket', $r->keterangan[$i]],
+                ['tgl_input', date('Y-m-d')],
+            ])->first();
+            if(!$cek) {
+                $this->tbl->insert([
+                    'tgl' => $r->tgl,
+                    'id_karyawan' => $r->id_karyawan[$i],
+                    'nominal' => $r->nominal[$i],
+                    'ket' => $r->keterangan[$i],
+                    'id_departemen' => $r->id_departemen,
+                    'admin' => auth()->user()->nama,
+                    'tgl_input' => date('Y-m-d'),
+    
+                ]);
+            }
         }
         return redirect()->route('denda', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil ditambahkan');
     }
