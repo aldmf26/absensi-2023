@@ -80,7 +80,7 @@ class KasbonAgrilarasController extends Controller
             $cek = $this->tbl->where([
                 ['id_karyawan' , $r->id_karyawan[$i]], 
                 ['nominal' , $r->nominal[$i]], 
-                ['tgl_input' , date('Y-m-d')], 
+                ['tgl' , date('Y-m-d')], 
             ])->first();
             if(!$cek) {
                 $this->tbl->insert([
