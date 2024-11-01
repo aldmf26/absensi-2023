@@ -15,13 +15,13 @@
                 {{ $p->jenis_pekerjaan }}</option>
         @endforeach
     </select>
-    <label for="">Pemakai Jasa</label>
+    {{-- <label for="">Pemakai Jasa</label>
     <select class="form-control" name="id_pemakai" id="">
         @foreach ($pemakai as $p)
             <option value="{{ $p->id_pemakai }}" {{ $p->id_pemakai == $d->id_pemakai ? 'selected' : '' }}>
                 {{ $p->pemakai }}</option>
         @endforeach
-    </select>
+    </select> --}}
     <label for="">Keterangan</label>
     <input type="text" value="{{ $d->ket }}" name="keterangan" class="form-control mb-3">
     <input type="submit" name="simpan" value="Simpan" id="tombol" class="btn btn-primary mt-3">

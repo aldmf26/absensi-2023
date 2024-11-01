@@ -85,7 +85,7 @@ class AbsensiController extends Controller
             $data = [
                 'id_karyawan' => $id_karyawan[$i],
                 'id_jenis_pekerjaan' => $id_jenis,
-                'id_pemakai' => $id_pemakai,
+                'id_pemakai' => $id_pemakai ?? 1,
                 'tanggal' => $tanggal,
                 'ket' => $keterangan,
             ];
@@ -100,7 +100,7 @@ class AbsensiController extends Controller
         $data = [
             'id_karyawan' => $request->id_karyawan,
             'id_jenis_pekerjaan' => $request->id_jenis,
-            'id_pemakai' => $request->id_pemakai,
+            'id_pemakai' => $request->id_pemakai ?? 1,
             'tanggal' => $request->tanggal,
             'ket' => $request->keterangan,
         ];

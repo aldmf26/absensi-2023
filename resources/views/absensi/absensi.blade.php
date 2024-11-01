@@ -112,7 +112,7 @@
                                             <div class="row">
                                                 <div class="col-3">
                                                     <label for="">Tanggal</label>
-                                                    <input required type="date" name="tanggal" class="form-control mb-3">
+                                                    <input value="{{ date('Y-m-d') }}" required type="date" name="tanggal" class="form-control mb-3">
                                                 </div>
                                                 <div class="col-3">
                                                     <div class="form-group" data-select2-id="93">
@@ -128,7 +128,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-2">
+                                                {{-- <div class="col-2">
                                                     <label for="">Pemakai Jasa</label>
                                                     <select class="form-control" name="id_pemakai" id="">
                                                         @foreach ($pemakai as $d)
@@ -136,7 +136,7 @@
                                                             </option>
                                                         @endforeach
                                                     </select>
-                                                </div>
+                                                </div> --}}
                                                 <div class="col-3">
                                                     <label for="">Jenis Pekerjaan</label>
                                                     <select class="form-control mb-3" name="id_jenis" id="">
@@ -258,7 +258,7 @@
                                         <th>Nama Karyawan</th>
                                         <th>Tanggal</th>
                                         <th>Jenis Pekerjaan</th>
-                                        <th>Pemakai Jasa</th>
+                                        {{-- <th>Pemakai Jasa</th> --}}
                                         <th>Keterangan</th>
                                         <th>Aksi</th>
                                     </tr>
@@ -275,7 +275,7 @@
                                             <td>{{ $d->nama_karyawan }}</td>
                                             <td>{{ $d->tanggal }}</td>
                                             <td>{{ strtolower($d->jenis_pekerjaan) }}</td>
-                                            <td>{{ $d->pemakai }}</td>
+                                            {{-- <td>{{ $d->pemakai }}</td> --}}
                                             <td>{{ $d->ket }}</td>
                                             <td>
                                                 <a class="btn btn-sm btn-success editRow" id_absen="{{ $d->id_absen }}" id="edit={{ $d->id_absen }}"

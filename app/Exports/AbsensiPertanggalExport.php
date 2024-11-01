@@ -20,7 +20,7 @@ class AbsensiPertanggalExport implements FromCollection, WithHeadings, ShouldAut
     }
     public function collection()
     {
-        return Absensi::select('absensi.id_karyawan','absensi.tanggal','karyawan.nama_karyawan','jenis_pekerjaan.jenis_pekerjaan','pemakai_jasa.pemakai', 'absensi.ket')->join('karyawan', 'absensi.id_karyawan', '=', 'karyawan.id_karyawan')->join('jenis_pekerjaan', 'absensi.id_jenis_pekerjaan', '=', 'jenis_pekerjaan.id')->join('pemakai_jasa', 'absensi.id_pemakai', '=', 'pemakai_jasa.id_pemakai')->where('id_departemen', 'LIKE', '%' . '1' . '%')->whereBetween('absensi.tanggal', [$this->dari, $this->sampai])->orderBy('absensi.tanggal', 'asc')->get();
+        return Absensi::select('absensi.id_karyawan','absensi.tanggal','karyawan.nama_karyawan','jenis_pekerjaan.jenis_pekerjaan','absensi.ket')->join('karyawan', 'absensi.id_karyawan', '=', 'karyawan.id_karyawan')->join('jenis_pekerjaan', 'absensi.id_jenis_pekerjaan', '=', 'jenis_pekerjaan.id')->join('pemakai_jasa', 'absensi.id_pemakai', '=', 'pemakai_jasa.id_pemakai')->where('id_departemen', 'LIKE', '%' . '1' . '%')->whereBetween('absensi.tanggal', [$this->dari, $this->sampai])->orderBy('absensi.tanggal', 'asc')->get();
     }
     public function headings(): array
     {

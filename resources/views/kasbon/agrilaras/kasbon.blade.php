@@ -70,7 +70,12 @@
                                                 <a class="btn btn-sm btn-success edit" id_kasbon="{{ $d->id_kasbon }}"
                                                     data-toggle="modal" data-target="#edit"><i class="fas fa-edit"></i></a>
                                                 <a class="btn btn-sm btn-danger" onclick="return confirm('Yakin dihapus ?')"
-                                                    href="{{ route('kasbonAgrilaras.delete', ['id_kasbon' => $d->id_kasbon, 'id_departemen' => request()->get('id_departemen')]) }}"><i
+                                                    href="{{ route('kasbonAgrilaras.delete', [
+                                                    'id_kasbon' => $d->id_kasbon, 
+                                                    'id_departemen' => request()->get('id_departemen'),
+                                                    'tgl1' => $tgl1,
+                                                    'tgl2' => $tgl2,
+                                                    ]) }}"><i
                                                         class="fas fa-trash"></i></a>
                                             </td>
                                         </tr>
@@ -148,6 +153,8 @@
                                             value="{{ request()->get('id_departemen') }}">
                                         <label for="">Tanggal</label>
                                         <input type="date" name="tgl" value="{{ date('Y-m-d') }}" class="form-control">
+                                        <input type="hidden" name="tgl1" value="{{ $tg1 }}" class="form-control">
+                                        <input type="hidden" name="tgl2" value="{{ $tgl2 }}" class="form-control">
                                     </div>
                                 </div>
                             </div>
@@ -202,7 +209,8 @@
                         </div>
                         <div class="modal-body">
                             <div id="load_edit"></div>
-
+                            <input type="hidden" name="tgl1" value="{{ $tg1 }}" class="form-control">
+                            <input type="hidden" name="tgl2" value="{{ $tgl2 }}" class="form-control">
                         </div>
                         <div class="modal-footer">
                             <input type="submit" name="simpan" value="Simpan" id="tombol" class="btn btn-primary">

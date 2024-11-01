@@ -93,7 +93,7 @@ class KasbonAgrilarasController extends Controller
                 ]);
             }
         }
-        return redirect()->route('kasbonAgrilaras', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil ditambahkan');
+        return redirect()->route('kasbonAgrilaras', ['id_departemen' => $r->id_departemen, 'tgl1' => $r->tgl1, 'tgl2' => $r->tgl2])->with('sukses', 'Data Berhasil ditambahkan');
     }
 
     public function btn_tambah(Request $r)
@@ -123,12 +123,12 @@ class KasbonAgrilarasController extends Controller
             'admin' => auth()->user()->nama,
             'tgl_input' => date('Y-m-d'),
         ]);
-        return redirect()->route('kasbonAgrilaras', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil di update');
+        return redirect()->route('kasbonAgrilaras', ['id_departemen' => $r->id_departemen, 'tgl1' => $r->tgl1, 'tgl2' => $r->tgl2])->with('sukses', 'Data Berhasil di update');
     }
 
     public function delete(Request $r)
     {
         $this->tbl->where('id_kasbon', $r->id_kasbon)->delete();
-        return redirect()->route('kasbonAgrilaras', ['id_departemen' => $r->id_departemen])->with('sukses', 'Data Berhasil dihapus');
+        return redirect()->route('kasbonAgrilaras', ['id_departemen' => $r->id_departemen, 'tgl1' => $r->tgl1, 'tgl2' => $r->tgl2])->with('sukses', 'Data Berhasil dihapus');
     }
 }
