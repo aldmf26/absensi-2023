@@ -153,7 +153,7 @@
                                             value="{{ request()->get('id_departemen') }}">
                                         <label for="">Tanggal</label>
                                         <input type="date" name="tgl" value="{{ date('Y-m-d') }}" class="form-control">
-                                        <input type="hidden" name="tgl1" value="{{ $tg1 }}" class="form-control">
+                                        <input type="hidden" name="tgl1" value="{{ $tgl1 }}" class="form-control">
                                         <input type="hidden" name="tgl2" value="{{ $tgl2 }}" class="form-control">
                                     </div>
                                 </div>
@@ -209,7 +209,7 @@
                         </div>
                         <div class="modal-body">
                             <div id="load_edit"></div>
-                            <input type="hidden" name="tgl1" value="{{ $tg1 }}" class="form-control">
+                            <input type="hidden" name="tgl1" value="{{ $tgl1 }}" class="form-control">
                             <input type="hidden" name="tgl2" value="{{ $tgl2 }}" class="form-control">
                         </div>
                         <div class="modal-footer">
