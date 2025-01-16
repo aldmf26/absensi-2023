@@ -10,7 +10,6 @@ class DataPegawaiController extends Controller
 {
     public function index()
     {
-        dd(1);
         // Ambil semua data pegawai
         $dataPegawai = DB::table('karyawan')
                         ->selectRaw("
