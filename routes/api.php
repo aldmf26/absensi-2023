@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DataPegawaiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response as HttpFoundationResponse;
@@ -16,3 +17,4 @@ Route::get('karyawan', function () {
     ];
     return response()->json($data, HttpFoundationResponse::HTTP_OK);
 });
+Route::get('/data-pegawai', [DataPegawaiController::class, 'index']);
