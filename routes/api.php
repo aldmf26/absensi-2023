@@ -18,3 +18,4 @@ Route::get('karyawan', function () {
     return response()->json($data, HttpFoundationResponse::HTTP_OK);
 });
 Route::get('/data-pegawai', [DataPegawaiController::class, 'index']);
+Route::get('/absen/{id}', [DataPegawaiController::class, 'absen']);
