@@ -31,17 +31,14 @@ class DataPegawaiController extends Controller
 
     public function absen($nama)
     {
-        $absensi = DB::table('absensi as a')
-            ->leftJoin('karyawan as k', 'a.id_karyawan', '=', 'k.id_karyawan')
-            ->selectRaw("
-                        k.id_karyawan,    
-                        k.nama_karyawan as nama,
-                        a.tanggal as tgl,
-                        a.ket
-                        ")
-            ->where('k.nama_karyawan', "Muhammad Fahrizaldi")
-            ->whereYear('a.tanggal', date('Y'))
-            ->get();
+        $absensi = DB::select("SELECT 
+                    k.id_karyawan,    
+                    k.nama_karyawan as nama,
+                    a.tanggal as tgl,
+                    a.ket
+        FROM `absensi` as a
+        join karyawan as k on a.id_karyawan = k.id_karyawan
+        WHERE year(a.tanggal) = 2025 and k.nama_karyawan = 'Muhammad Fahrizaldi';");
 
         $datas = [
             'sumber_data' => 'absensi',
