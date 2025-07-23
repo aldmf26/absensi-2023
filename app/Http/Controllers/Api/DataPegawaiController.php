@@ -40,7 +40,7 @@ class DataPegawaiController extends Controller
                 'a.ket'
             )
             ->whereYear('a.tanggal', date('Y'))
-            ->where('k.id_karyawan', $nama)
+            ->where('k.nama_karyawan', $nama)
             ->get();
 
         $datas = [
