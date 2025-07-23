@@ -41,6 +41,7 @@ class DataPegawaiController extends Controller
             )
             ->whereYear('a.tanggal', date('Y'))
             ->where('k.nama_karyawan', 'LIKE', "%{$nama}%")
+            ->where('a.ket', '!=', '')
             ->get();
 
         $datas = [
