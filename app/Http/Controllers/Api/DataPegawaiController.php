@@ -44,9 +44,28 @@ class DataPegawaiController extends Controller
             ->where('a.ket', '!=', '')
             ->get();
 
+        // Calculate total attendance days per month for the current year
+        $absenTotal = DB::table('absensi as a')
+            ->join('karyawan as k', 'a.id_karyawan', '=', 'k.id_karyawan')
+            ->whereYear('a.tanggal', date('Y'))
+            ->where('k.nama_karyawan', 'LIKE', "%{$nama}%")
+            ->where('a.ket', '!=', '')
+            ->groupBy(DB::raw('MONTH(a.tanggal)'))
+            ->selectRaw('MONTH(a.tanggal) as bulan, COUNT(*) as total_hari')
+            ->get()
+            ->pluck('total_hari', 'bulan')
+            ->toArray();
+
+        // Format total days per month (1-12)
+        $totalPerBulan = array_fill(1, 12, 0);
+        foreach ($absenTotal as $bulan => $total) {
+            $totalPerBulan[$bulan] = $total;
+        }
+
         $datas = [
             'sumber_data' => 'absensi',
-            'absensi' => $absensi
+            'absensi' => $absensi,
+            'total_per_bulan' => $totalPerBulan,
         ];
         return response()->json($datas, 200);
     }
