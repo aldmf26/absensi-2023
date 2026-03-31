@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Absensi_Agrilaras;
 use App\Models\Karyawan;
 use App\Models\Status;
+use App\Models\GajiAturan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -275,13 +276,65 @@ class AbsensiAgrilaras extends Controller
 ");
   }
 
+  private function detectHarusnyaNaikGaji($tgl_filter)
+  {
+    // Query dengan JOIN untuk ambil data karyawan + gaji + aturan
+    // Mencari aturan dengan masa_kerja tertinggi yang lebih rendah/sama dengan masa kerja sekarang
+    $hasil = DB::select("
+      SELECT 
+        k.id_karyawan,
+        k.nama_karyawan,
+        k.posisi,
+        k.tanggal_masuk,
+        g.rp_m,
+        g.g_bulanan,
+        FLOOR(DATEDIFF(CURDATE(), k.tanggal_masuk) / 365.25) as masa_kerja_tahun,
+        ga.rp_harian as gaji_seharusnya,
+        ga.rp_bulanan as gajibulanan_seharusnya
+      FROM karyawan k
+      LEFT JOIN tb_gaji g ON k.id_karyawan = g.id_karyawan
+      LEFT JOIN gaji_aturan ga ON LOWER(TRIM(k.posisi)) = LOWER(TRIM(ga.posisi)) 
+        AND ga.id = (
+          SELECT id FROM gaji_aturan ga2 
+          WHERE LOWER(TRIM(ga2.posisi)) = LOWER(TRIM(k.posisi))
+          AND ga2.masa_kerja <= FLOOR(DATEDIFF(CURDATE(), k.tanggal_masuk) / 365.25)
+          ORDER BY ga2.masa_kerja DESC
+          LIMIT 1
+        )
+      WHERE k.id_departemen = 4
+    ");
+
+    $harus_naik = [];
+
+    foreach ($hasil as $row) {
+      // Jika ada data aturan dan gaji saat ini lebih kecil dari seharusnya
+      if ($row->gaji_seharusnya && ($row->rp_m < $row->gaji_seharusnya)) {
+        $selisih = $row->gaji_seharusnya - $row->rp_m;
+
+        $harus_naik[] = [
+          'id_karyawan' => $row->id_karyawan,
+          'nama' => $row->nama_karyawan,
+          'posisi' => $row->posisi,
+          'masa_kerja' => $row->masa_kerja_tahun,
+          'tanggal_masuk' => $row->tanggal_masuk,
+          'gaji_saat_ini' => $row->rp_m ?? 0,
+          'gaji_seharusnya' => $row->gaji_seharusnya,
+          'selisih' => $selisih,
+          'status' => 'BELUM NAIK'
+        ];
+      }
+    }
+
+    return $harus_naik;
+  }
+
   public function gajiAgrilaras(Request $r)
   {
     $tgl1 = $r->tgl1 ?? date('Y-m-1');
     $tgl2 = $r->tgl2 ?? date('Y-m-d');
 
     $query = $this->queryGaji($tgl1, $tgl2);
-
+    $harus_naik_gaji = $this->detectHarusnyaNaikGaji($tgl1);
 
     $data = [
       'title' => 'Gaji Agrilaras',
@@ -290,6 +343,7 @@ class AbsensiAgrilaras extends Controller
       'id_departemen' => 4,
       'shift' => Status::all(),
       'hasil' => $query,
+      'harus_naik_gaji' => $harus_naik_gaji,
     ];
 
     return view('gaji.gaji', $data);
@@ -428,7 +482,7 @@ class AbsensiAgrilaras extends Controller
 
 
     $writer = new Xlsx($spreadsheet);
-  
+
     $style = [
       'borders' => [
         'alignment' => [
