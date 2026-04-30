@@ -278,49 +278,52 @@ class AbsensiAgrilaras extends Controller
 
   private function detectHarusnyaNaikGaji($tgl_filter)
   {
-    // Query dengan JOIN untuk ambil data karyawan + gaji + aturan
-    // Mencari aturan dengan masa_kerja tertinggi yang lebih rendah/sama dengan masa kerja sekarang
     $hasil = DB::select("
-      SELECT 
-        k.id_karyawan,
-        k.nama_karyawan,
-        k.posisi,
-        k.tanggal_masuk,
-        g.rp_m,
-        g.g_bulanan,
-        FLOOR(DATEDIFF(CURDATE(), k.tanggal_masuk) / 365.25) as masa_kerja_tahun,
-        ga.rp_harian as gaji_seharusnya,
-        ga.rp_bulanan as gajibulanan_seharusnya
-      FROM karyawan k
-      LEFT JOIN tb_gaji g ON k.id_karyawan = g.id_karyawan
-      LEFT JOIN gaji_aturan ga ON LOWER(TRIM(k.posisi)) = LOWER(TRIM(ga.posisi)) 
-        AND ga.id = (
-          SELECT id FROM gaji_aturan ga2 
-          WHERE LOWER(TRIM(ga2.posisi)) = LOWER(TRIM(k.posisi))
-          AND ga2.masa_kerja <= FLOOR(DATEDIFF(CURDATE(), k.tanggal_masuk) / 365.25)
-          ORDER BY ga2.masa_kerja DESC
-          LIMIT 1
-        )
-      WHERE k.id_departemen = 4
+        SELECT 
+            k.id_karyawan,
+            k.nama_karyawan,
+            k.posisi,
+            k.tanggal_masuk,
+            g.rp_m,
+            g.g_bulanan,
+            -- Hitung masa kerja dalam BULAN
+            TIMESTAMPDIFF(MONTH, k.tanggal_masuk, CURDATE()) as masa_kerja_bulan,
+            -- Untuk display tetap tampilkan tahun
+            FLOOR(TIMESTAMPDIFF(MONTH, k.tanggal_masuk, CURDATE()) / 12) as masa_kerja_tahun,
+            ga.rp_harian as gaji_seharusnya,
+            ga.rp_bulanan as gajibulanan_seharusnya,
+            ga.masa_kerja as level_aturan
+        FROM karyawan k
+        LEFT JOIN tb_gaji g ON k.id_karyawan = g.id_karyawan
+        LEFT JOIN gaji_aturan ga ON LOWER(TRIM(k.posisi)) = LOWER(TRIM(ga.posisi)) 
+            AND ga.id = (
+                SELECT id FROM gaji_aturan ga2 
+                WHERE LOWER(TRIM(ga2.posisi)) = LOWER(TRIM(k.posisi))
+                -- Sekarang bandingkan BULAN vs BULAN
+                AND ga2.masa_kerja <= TIMESTAMPDIFF(MONTH, k.tanggal_masuk, CURDATE())
+                ORDER BY ga2.masa_kerja DESC
+                LIMIT 1
+            )
+        WHERE k.id_departemen = 4
+          AND g.rp_m IS NOT NULL  -- hanya yang ada data gaji harian
     ");
 
     $harus_naik = [];
 
     foreach ($hasil as $row) {
-      // Jika ada data aturan dan gaji saat ini lebih kecil dari seharusnya
       if ($row->gaji_seharusnya && ($row->rp_m < $row->gaji_seharusnya)) {
         $selisih = $row->gaji_seharusnya - $row->rp_m;
 
         $harus_naik[] = [
-          'id_karyawan' => $row->id_karyawan,
-          'nama' => $row->nama_karyawan,
-          'posisi' => $row->posisi,
-          'masa_kerja' => $row->masa_kerja_tahun,
-          'tanggal_masuk' => $row->tanggal_masuk,
-          'gaji_saat_ini' => $row->rp_m ?? 0,
+          'id_karyawan'    => $row->id_karyawan,
+          'nama'           => $row->nama_karyawan,
+          'posisi'         => $row->posisi,
+          'masa_kerja'     => $row->masa_kerja_bulan . ' bulan (' . $row->masa_kerja_tahun . ' thn)',
+          'tanggal_masuk'  => $row->tanggal_masuk,
+          'gaji_saat_ini'  => $row->rp_m ?? 0,
           'gaji_seharusnya' => $row->gaji_seharusnya,
-          'selisih' => $selisih,
-          'status' => 'BELUM NAIK'
+          'selisih'        => $selisih,
+          'status'         => 'BELUM NAIK'
         ];
       }
     }
