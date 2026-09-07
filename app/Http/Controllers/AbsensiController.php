@@ -40,24 +40,41 @@ class AbsensiController extends Controller
                 $sampai = $tglSampai;
             }
 
+            $filterJenis = (int) $request->id_jenis;
+            $whereJenis = $filterJenis > 0 ? " AND a.id_jenis_pekerjaan = $filterJenis" : '';
+
+            $karyawan = Karyawan::where('id_departemen', '1')->get();
+            $tahun = date('Y');
+            $pakaiCuti = Absensi::selectRaw('id_karyawan, COALESCE(SUM(jumlah_hari),0) as total')
+                ->where('id_jenis_pekerjaan', 17)
+                ->whereBetween('tanggal', ["$tahun-01-01", "$tahun-12-31"])
+                ->groupBy('id_karyawan')
+                ->pluck('total', 'id_karyawan');
+            $sisaJatah = [];
+            foreach ($karyawan as $k) {
+                $sisaJatah[$k->id_karyawan] = max(0, 12 - (int) ($pakaiCuti[$k->id_karyawan] ?? 0));
+            }
+
             $data = [
                 'title' => 'Absensi',
-                'absensi' => DB::select("SELECT d.id_pemakai,a.id_jenis_pekerjaan, a.id_karyawan, b.nama_karyawan, a.tanggal, c.jenis_pekerjaan, d.pemakai, a.ket ,a.id_absen FROM absensi as a
+                'absensi' => DB::select("SELECT d.id_pemakai,a.id_jenis_pekerjaan, a.id_karyawan, b.nama_karyawan, a.tanggal, c.jenis_pekerjaan, d.pemakai, a.ket ,a.id_absen, a.foto_masuk, a.foto_selesai, a.created_at, a.jam_masuk, a.jam_selesai FROM absensi as a
                 LEFT JOIN karyawan as b ON a.id_karyawan = b.id_karyawan
                 LEFT JOIN jenis_pekerjaan as c ON a.id_jenis_pekerjaan = c.id
                 LEFT JOIN pemakai_jasa as d ON a.id_pemakai = d.id_pemakai
-                WHERE b.id_departemen = '1' AND a.tanggal BETWEEN '$dari' AND '$sampai'
+                WHERE b.id_departemen = '1' AND a.tanggal BETWEEN '$dari' AND '$sampai' $whereJenis
                 ORDER BY a.id_absen DESC
                 "),
-                'karyawan' => Karyawan::where('id_departemen', '1')->get(),
+                'karyawan' => $karyawan,
                 'pemakai' => Pemakai::all(),
                 'jenis_pekerjaan' => Jenis::all(),
                 'aktif' => 2,
                 'dari' => $dari,
                 'sampai' => $sampai,
-                'id_departemen' => $id_departemen
+                'id_departemen' => $id_departemen,
+                'filterJenis' => $filterJenis,
+                'sisaJatah' => $sisaJatah
             ];
-            return view('absensi.absensi', ['tglDari => ' . $dari . ',' . 'tglSampai' => $sampai], $data);
+            return view('absensi.absensi', $data);
         }
     }
 
@@ -88,11 +105,65 @@ class AbsensiController extends Controller
                 'id_pemakai' => $id_pemakai ?? 1,
                 'tanggal' => $tanggal,
                 'ket' => $keterangan,
+                'status' => 'selesai',
             ];
 
             Absensi::create($data);
         }
         return redirect()->route('absensi', ['id_departemen' => 1]);
+    }
+
+    public function addCuti(Request $request)
+    {
+        $data = $request->validate([
+            'id_karyawan' => 'required|integer',
+            'jenis_cuti' => 'required|integer', // id jenis_pekerjaan (12 atau 17)
+            'tanggal_cuti' => 'required|array|min:1',
+            'tanggal_cuti.*' => 'required|date',
+            'ket' => 'nullable|string|max:255',
+        ]);
+
+        $tanggal = array_values(array_unique($data['tanggal_cuti']));
+        sort($tanggal);
+        $jumlah_hari = count($tanggal);
+
+        $ket = trim(($data['ket'] ?? '') . ' | ' . $jumlah_hari . ' hari: ' . implode(', ', $tanggal));
+
+        $jenis_cuti = (int) $data['jenis_cuti'];
+        $id_karyawan = (int) $data['id_karyawan'];
+
+        // Cuti tahunan (17) dibayar maksimal 12 hari per tahun (Jan-Des).
+        // Kelebihan hari otomatis ditandai "TIDAK DIBAYAR" di keterangan.
+        $terpakai = $this->totalCutiTahun($id_karyawan);
+        $sisa_jatah = max(0, 12 - $terpakai);
+        $hari_tidak_dibayar = $jenis_cuti === 17 ? max(0, $jumlah_hari - $sisa_jatah) : 0;
+        if ($hari_tidak_dibayar > 0) {
+            $ket .= ' | ' . $hari_tidak_dibayar . ' hari TIDAK DIBAYAR (jatah cuti 12 hari habis)';
+        }
+
+        Absensi::create([
+            'id_karyawan' => $id_karyawan,
+            'id_jenis_pekerjaan' => $jenis_cuti,
+            'id_pemakai' => 1,
+            'tanggal' => $tanggal[0],
+            'jumlah_hari' => $jumlah_hari,
+            'ket' => $ket,
+            'status' => 'selesai',
+        ]);
+
+        return redirect()->route('absensi', ['id_departemen' => 1])
+            ->with('info', $hari_tidak_dibayar > 0
+                ? 'Cuti tersimpan. Jatah habis: ' . $hari_tidak_dibayar . ' hari ditandai TIDAK DIBAYAR.'
+                : 'Cuti tersimpan. Sisa jatah: ' . ($sisa_jatah - $jumlah_hari) . ' hari.');
+    }
+
+    private function totalCutiTahun(int $id_karyawan): int
+    {
+        $tahun = date('Y');
+        return (int) Absensi::where('id_karyawan', $id_karyawan)
+            ->where('id_jenis_pekerjaan', 17)
+            ->whereBetween('tanggal', ["{$tahun}-01-01", "{$tahun}-12-31"])
+            ->sum('jumlah_hari');
     }
 
     public function editAbsensi(Request $request)
@@ -103,6 +174,7 @@ class AbsensiController extends Controller
             'id_pemakai' => $request->id_pemakai ?? 1,
             'tanggal' => $request->tanggal,
             'ket' => $request->keterangan,
+            'status' => 'selesai',
         ];
 
         Absensi::where('id_absen', $request->id_absen)->update($data);
@@ -113,8 +185,17 @@ class AbsensiController extends Controller
 
     public function deleteAbsensi(Request $request)
     {
+        $absen = Absensi::where('id_absen', $request->id_absen)->first();
 
-        Absensi::where('id_absen', $request->id_absen)->delete();
+        if ($absen) {
+            foreach (['foto_masuk', 'foto_selesai'] as $kolom) {
+                if (! empty($absen->{$kolom})) {
+                    $path = str_replace('storage/', '', $absen->{$kolom});
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+                }
+            }
+            $absen->delete();
+        }
 
         return redirect()->route('absensi', ['id_departemen' => 1, 'tglDari' => $request->tglDari, 'tglSampai' => $request->tglSampai]);
     }
@@ -148,6 +229,6 @@ class AbsensiController extends Controller
         $sampai = $request->sampai;
 
         Absensi::whereBetween('absensi.tanggal', [$dari, $sampai])->delete();
-        return redirect()->route('absensi', ['id_departemen' => 1, 'tglDari' => $request->tglDari, 'tglSampai' => $request->tglSampai])->with('error', 'Berhasil hapus absen ' . $dari . ' - ' . $sampai);
+        return redirect()->route('absensi', ['id_departemen' => 1, 'tglDari' => $dari, 'tglSampai' => $sampai])->with('error', 'Berhasil hapus absen ' . $dari . ' - ' . $sampai);
     }
 }

@@ -136,6 +136,8 @@
                                             <input type="text" name="posisi" class="form-control">
                                             <label for="">Tanggal Masuk</label>
                                             <input type="date" name="tanggal_masuk" class="form-control">
+                                            <label for="">PIN Absensi (opsional)</label>
+                                            <input type="password" name="pin_absen" class="form-control" maxlength="6" placeholder="PIN utk absen mandiri">
                                             <label for="">Departemen</label>
                                             @foreach ($departemen as $d)
                                                 <input type="hidden" value="{{ $d->id_departemen }}" name="id_departemen">
@@ -248,6 +250,10 @@
                                 <label for="">Tanggal Masuk</label>
                                 <input type="date" name="tanggal_masuk" value="{{ $d->tanggal_masuk }}"
                                     class="form-control"><br>
+
+                                <label for="">PIN Absensi (kosongkan bila tidak diubah)</label>
+                                <input type="password" name="pin_absen" class="form-control" maxlength="6"
+                                    placeholder="PIN utk absen mandiri">
 
                                 <input type="submit" name="simpan" value="Simpan" id="tombol" class="btn btn-primary mt-3">
                                 <button type="button" class="btn btn-secondary  mt-3" data-dismiss="modal">Close</button>

@@ -21,8 +21,19 @@ use App\Http\Controllers\DendaController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
+// ===== ABSENSI KARYAWAN MANDIRI (departemen 1) =====
+Route::controller(\App\Http\Controllers\KaryawanAbsenController::class)->group(function () {
+    Route::get('/absen/login', 'showLogin')->name('absen.login');
+    Route::post('/absen/login', 'doLogin')->name('absen.doLogin')->middleware('throttle:5,1');
+    Route::get('/absen/logout', 'logout')->name('absen.logout')->middleware('absen-karyawan');
+    Route::get('/absen', 'index')->name('absen.index')->middleware('absen-karyawan');
+    Route::post('/absen', 'store')->name('absen.store')->middleware('absen-karyawan');
+    Route::post('/absen/selesai', 'selesai')->name('absen.selesai')->middleware('absen-karyawan');
+});
+
 // Route::middleware('auth')->group(function () {
     Route::controller(KaryawanController::class)
+        ->middleware('block-karyawan')
         ->group(function () {
             Route::get('/karyawan', 'index')->name('karyawan');
             Route::post('/karyawan', 'addKaryawan')->name('addKaryawan');
@@ -59,8 +70,10 @@ use Illuminate\Support\Facades\Route;
         });
 
     Route::controller(AbsensiController::class)
+        ->middleware('block-karyawan')
         ->group(function () {
             Route::get('/absensi',  'index')->name('absensi');
+            Route::post('/absensi/cuti',  'addCuti')->name('addCuti');
             Route::get('/absensi_edit/{id}',  'absensi_edit')->name('absensi_edit');
             Route::get('/detail-absensi',  'detailAbsensi')->name('detailAbsensi');
             Route::post('/absensi',  'addAbsensi')->name('addAbsensi');
@@ -118,6 +131,7 @@ use Illuminate\Support\Facades\Route;
         });
 
     Route::controller(UserController::class)
+        ->middleware('block-karyawan')
         ->group(function () {
             Route::get('/users',  'index')->name('users');
             Route::post('/users',  'addUser')->name('addUser');
@@ -170,7 +184,7 @@ use Illuminate\Support\Facades\Route;
             Route::post('/denda/update', 'update')->name('denda.update');
         });
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('block-karyawan');
     Route::get('/tabelResto', [TabelRestoController::class, 'index'])->name('tabelResto');
     // tabel salon
     Route::get('/tabelSalon', [TabelSalonController::class, 'index'])->name('tabelSalon');

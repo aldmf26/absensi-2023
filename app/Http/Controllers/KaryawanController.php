@@ -67,6 +67,9 @@ class KaryawanController extends Controller
             'id_departemen' => $request->id_departemen,
             'posisi' => $request->posisi
         ];
+        if ($request->filled('pin_absen')) {
+            $data['pin_absen'] = bcrypt($request->pin_absen);
+        }
         if ($id_departemen == 1) {
             $rot = 'karyawan';
         }
@@ -94,6 +97,10 @@ class KaryawanController extends Controller
             'tanggal_masuk' => $request->tanggal_masuk,
             'posisi' => $request->posisi
         ];
+
+        if ($request->filled('pin_absen')) {
+            $data['pin_absen'] = bcrypt($request->pin_absen);
+        }
 
         Karyawan::where('id_karyawan', $request->id_karyawan)->update($data);
 

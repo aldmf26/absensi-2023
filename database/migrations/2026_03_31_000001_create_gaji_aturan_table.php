@@ -13,6 +13,9 @@ class CreateGajiAturanTable extends Migration
      */
     public function up()
     {
+        if (Schema::hasTable('gaji_aturan')) {
+            return;
+        }
         Schema::create('gaji_aturan', function (Blueprint $table) {
             $table->id();
             $table->string('posisi'); // Anak Kandang, Supir, Admin, dll

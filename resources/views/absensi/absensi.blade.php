@@ -59,14 +59,23 @@
                     <section class="col-lg-12 connectedSortable">
                         <!-- Custom tabs (Charts with tabs)-->
                         <!-- Button trigger modal -->
-                        <form action="" method="get">
+                        <form action="{{ route('absensi') }}" method="get">
+                            <input type="hidden" name="id_departemen" value="{{ $id_departemen ?? 1 }}">
                             <div class="row ml-3">
-                                <div class="col-sm-3">
-                                    <input type="date" required class="form-control" id="dari" name="tglDari">
+                                <div class="col-sm-2">
+                                    <input type="date" class="form-control" id="dari" name="tglDari" value="{{ $dari ?? '' }}">
                                 </div>
                                 <span class="ml-2 mr-2 mt-2">-</span>
-                                <div class="col-sm-3">
-                                    <input type="date" required class="form-control" id="sampai" name="tglSampai">
+                                <div class="col-sm-2">
+                                    <input type="date" class="form-control" id="sampai" name="tglSampai" value="{{ $sampai ?? '' }}">
+                                </div>
+                                <div class="col-sm-2">
+                                    <select class="form-control" name="id_jenis" id="filterJenis">
+                                        <option value="">Semua Jenis Pekerjaan</option>
+                                        @foreach($jenis_pekerjaan as $j)
+                                            <option value="{{ $j->id }}" @if(isset($filterJenis) && (int)$filterJenis === (int)$j->id) selected @endif>{{ $j->jenis_pekerjaan }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                                 <div class="col-sm-2 mt-2">
                                     <button class="btn btn-sm btn-info" id="btnFilter" type="submit">view</button>
@@ -79,21 +88,38 @@
                                 data-target="#tambahAbsensi">
                                 + Tambah Absensi
                             </button>
+                            <button type="button" class="btn btn-info mb-3" data-toggle="modal"
+                                data-target="#tambahCuti">
+                                + Tambah Cuti/Libur
+                            </button>
                             <a href="{{ route('excel') }}" class="btn btn-success mb-3"><i class="fas fa-file-excel"></i>
                                 Export All</a>
-                            <button type="button" class="btn btn-success mb-3" data-toggle="modal"
-                                data-target="#exportPertanggal"><i class="fas fa-file-excel"></i>
+                            <a href="{{ route('exportPertanggal', ['dari' => $dari, 'sampai' => $sampai]) }}" class="btn btn-success mb-3"><i class="fas fa-file-excel"></i>
                                 Export Pertanggal
-                            </button>
+                            </a>
                             <button type="button" class="btn btn-danger mb-3" data-toggle="modal"
                                 data-target="#hapusPertanggal"><i class="fa fa-trash"></i>
                                 Hapus Pertanggal
                             </button>
                             <br>
+                            @if (session('info'))
+                                <div class="alert alert-info alert-dismissible ml-4 mr-1">
+                                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                                    {{ session('info') }}
+                                </div>
+                            @endif
 
                             <style>
                                 .modal-lg-max {
                                     max-width: 900px;
+                                }
+                                .foto-thumb {
+                                    width: 70px;
+                                    height: 70px;
+                                    object-fit: cover;
+                                    border-radius: 8px;
+                                    cursor: pointer;
+                                    border: 1px solid #eee;
                                 }
                             </style>
 
@@ -168,45 +194,64 @@
                                 </div>
                             </div>
                         </form>
-                        {{-- modal export pertanggal --}}
-                        <form action="{{ route('exportPertanggal') }}">
-                            <div class="modal fade" id="exportPertanggal" tabindex="-1" role="dialog"
+                        {{-- modal tambah cuti / libur --}}
+                        <form action="{{ route('addCuti') }}" method="post">
+                            @csrf
+                            <div class="modal fade" id="tambahCuti" tabindex="-1" role="dialog"
                                 aria-labelledby="exampleModalLabel" aria-hidden="true">
-                                <div class="modal-dialog modal-md-6" role="document">
+                                <div class="modal-dialog" role="document">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title" id="exampleModalLabel">Export Pertanggal</h5>
-                                            <button type="button" class="close" data-dismiss="modal"
-                                                aria-label="Close">
+                                            <h5 class="modal-title">Tambah Cuti / Libur</h5>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                                 <span aria-hidden="true">&times;</span>
                                             </button>
                                         </div>
                                         <div class="modal-body">
-                                            <div class="row">
-
-                                                <div class="col-md-6">
-                                                    <label for="">Dari</label>
-                                                    <input required type="date" name="dari"
-                                                        class="form-control mb-3">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label for="">Sampai</label>
-                                                    <input required type="date" name="sampai"
-                                                        class="form-control mb-3">
-                                                </div>
+                                            <div class="form-group">
+                                                <label>Karyawan</label>
+                                                <select required name="id_karyawan" id="selectKaryawanCuti" class="form-control select2">
+                                                    @foreach ($karyawan as $d)
+                                                        <option value="{{ $d->id_karyawan }}">{{ strtoupper($d->nama_karyawan) }}</option>
+                                                    @endforeach
+                                                </select>
                                             </div>
-                                            <div class="modal-footer">
-                                                <input type="submit" name="simpan" value="Simpan" id="tombol"
-                                                    class="btn btn-primary mt-3">
-                                                <button type="button" class="btn btn-secondary  mt-3"
-                                                    data-dismiss="modal">Close</button>
+                                            <div id="infoSisaCuti" class="alert alert-secondary py-1 px-2 mb-3" style="display:none;"></div>
+                                            <div class="form-group">
+                                                <label>Jenis</label>
+                                                <select required name="jenis_cuti" id="selectJenisCuti" class="form-control">
+                                                    <option value="17">Cuti Tahunan (12 hari)</option>
+                                                    <option value="12">Libur Pulang Luar Kota</option>
+                                                </select>
                                             </div>
+                                            <div class="form-group">
+                                                <label>Tanggal Cuti</label>
+                                                <div id="tanggalCutiList">
+                                                    <div class="input-group mb-2" style="display:flex;gap:8px;">
+                                                        <input required type="date" name="tanggal_cuti[]" class="form-control tgl-cuti" onchange="hitungJumlahHariCuti()">
+                                                        <button type="button" class="btn btn-danger btn-hapus-tgl" onclick="hapusTanggalCuti(this)">&times;</button>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="tambahTanggalCuti()">+ Tambah Tanggal</button>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Jumlah Hari</label>
+                                                <input type="text" value="1" id="jumlah_hari" class="form-control" readonly>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Keterangan</label>
+                                                <input type="text" name="ket" class="form-control" placeholder="misal: cuti tahunan / pulang ke luar kota">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <input type="submit" name="simpan" value="Simpan" id="tombol"
+                                                class="btn btn-primary">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </form>
-
                         {{-- end export pertanggal --}}
                         {{-- modal hapus pertanggal --}}
                         <form action="{{ route('hapusPertanggal') }}">
@@ -254,12 +299,15 @@
                                 <thead>
                                     <tr>
                                         <th>No</th>
-                                        <th>ID Karyawan</th>
                                         <th>Nama Karyawan</th>
                                         <th>Tanggal</th>
                                         <th>Jenis Pekerjaan</th>
                                         {{-- <th>Pemakai Jasa</th> --}}
                                         <th>Keterangan</th>
+                                        <th>Jam</th>
+                                        <th>Foto Masuk</th>
+                                        <th>Foto Selesai</th>
+                                        <th>Dibuat Tgl (cek salah input)</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
@@ -271,12 +319,42 @@
                                     @foreach ($absensi as $d)
                                         <tr align="center">
                                             <td>{{ $no++ }}</td>
-                                            <td>{{ $d->id_karyawan }}</td>
                                             <td>{{ $d->nama_karyawan }}</td>
                                             <td>{{ $d->tanggal }}</td>
                                             <td>{{ strtolower($d->jenis_pekerjaan) }}</td>
                                             {{-- <td>{{ $d->pemakai }}</td> --}}
                                             <td>{{ $d->ket }}</td>
+                                            <td>
+                                                @php
+                                                    $jamMasuk = $d->jam_masuk ? \Carbon\Carbon::parse($d->jam_masuk)->format('H:i') : '';
+                                                    $jamSelesai = $d->jam_selesai ? \Carbon\Carbon::parse($d->jam_selesai)->format('H:i') : '';
+                                                @endphp
+                                                @if($jamMasuk || $jamSelesai)
+                                                    {{ $jamMasuk }}{{ $jamSelesai ? '–' . $jamSelesai : '' }}
+                                                @else
+                                                    <span style="color:#ccc">-</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($d->foto_masuk)
+                                                    <img src="{{ asset($d->foto_masuk) }}" class="foto-thumb" alt="masuk" onclick="bukaFoto('{{ asset($d->foto_masuk) }}')">
+                                                @else
+                                                    <span style="color:#ccc">-</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($d->foto_selesai)
+                                                    <img src="{{ asset($d->foto_selesai) }}" class="foto-thumb" alt="selesai" onclick="bukaFoto('{{ asset($d->foto_selesai) }}')">
+                                                @else
+                                                    <span style="color:#ccc">-</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                {{ $d->created_at ? \Carbon\Carbon::parse($d->created_at)->format('d-m-Y') : '-' }}
+                                                @if($d->created_at && \Carbon\Carbon::parse($d->created_at)->format('Y-m-d') != $d->tanggal)
+                                                    <span class="badge badge-warning">⚠ beda</span>
+                                                @endif
+                                            </td>
                                             <td>
                                                 <a class="btn btn-sm btn-success editRow" id_absen="{{ $d->id_absen }}" id="edit={{ $d->id_absen }}"
                                                     data-toggle="modal" data-target="#editAbsensi"><i
@@ -330,9 +408,62 @@
                 </div>
             </div>
         </form>
+
+        <!-- Lightbox lihat foto -->
+        <div class="modal fade" id="lightboxModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document" style="max-width:min(95vw,900px);">
+                <div class="modal-content">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="position:absolute;right:10px;top:6px;z-index:5;color:#fff;text-shadow:0 0 4px #000;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <div class="modal-body text-center" style="background:#111;padding:6px;">
+                        <img id="lightboxImg" src="" alt="foto absen" style="max-width:100%;max-height:85vh;height:auto;border-radius:6px;">
+                    </div>
+                </div>
+            </div>
+        </div>
     @section('script')
         <script>
             $(document).ready(function() {
+                var sisaJatah = @json($sisaJatah);
+                window.updateSisaCuti = function() {
+                    var id = $('#selectKaryawanCuti').val();
+                    var jenis = $('#selectJenisCuti').val();
+                    var el = $('#infoSisaCuti');
+                    if (jenis == 17 && id && sisaJatah[id] !== undefined) {
+                        el.text('Sisa jatah cuti tahunan: ' + sisaJatah[id] + ' hari').removeClass('alert-danger').show();
+                        if (sisaJatah[id] <= 0) el.addClass('alert-danger');
+                    } else if (jenis == 12) {
+                        el.text('Libur Pulang Luar Kota: tanpa jatah.').removeClass('alert-danger').show();
+                    } else {
+                        el.hide();
+                    }
+                };
+                $('#selectKaryawanCuti, #selectJenisCuti').on('change', updateSisaCuti);
+                window.bukaFoto = function(src) {
+                    $('#lightboxImg').attr('src', src);
+                    $('#lightboxModal').modal('show');
+                };
+                window.tambahTanggalCuti = function() {
+                    var html =
+                        '<div class="input-group mb-2" style="display:flex;gap:8px;">' +
+                        '<input required type="date" name="tanggal_cuti[]" class="form-control tgl-cuti" onchange="hitungJumlahHariCuti()">' +
+                        '<button type="button" class="btn btn-danger" onclick="hapusTanggalCuti(this)">&times;</button>' +
+                        '</div>';
+                    $('#tanggalCutiList').append(html);
+                    hitungJumlahHariCuti();
+                };
+                window.hapusTanggalCuti = function(btn) {
+                    $(btn).closest('.input-group').remove();
+                    hitungJumlahHariCuti();
+                };
+                window.hitungJumlahHariCuti = function() {
+                    var total = 0;
+                    $('#tanggalCutiList .tgl-cuti').each(function() {
+                        if ($(this).val()) total++;
+                    });
+                    $('#jumlah_hari').val(total || 1);
+                };
                 $(document).on('click', `.editRow`, function() {
                     var id = $(this).attr(`id_absen`)
                     $.ajax({
@@ -349,6 +480,20 @@
                 $('.select2bs4').select2({
                     theme: 'bootstrap4'
                 })
+
+                function initSelect2Cuti() {
+                    var $el = $('#selectKaryawanCuti');
+                    if ($el.hasClass('select2-hidden-accessible')) {
+                        $el.select2('destroy');
+                    }
+                    $el.select2({
+                        theme: 'bootstrap4',
+                        width: '100%',
+                        dropdownParent: $('#tambahCuti .modal-content')
+                    });
+                }
+                $('#tambahCuti').on('shown.bs.modal', initSelect2Cuti);
+                initSelect2Cuti();
 
                 var count_absensi = 1;
                 $(function() {
