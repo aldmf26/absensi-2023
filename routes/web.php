@@ -29,6 +29,7 @@ Route::controller(\App\Http\Controllers\KaryawanAbsenController::class)->group(f
     Route::get('/absen', 'index')->name('absen.index')->middleware('absen-karyawan');
     Route::post('/absen', 'store')->name('absen.store')->middleware('absen-karyawan');
     Route::post('/absen/selesai', 'selesai')->name('absen.selesai')->middleware('absen-karyawan');
+    Route::post('/absen/cuti', 'addCuti')->name('absen.cuti')->middleware('absen-karyawan');
 });
 
 // Route::middleware('auth')->group(function () {

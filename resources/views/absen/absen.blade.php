@@ -10,7 +10,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background: #f2f4f8; min-height: 100vh; padding-bottom: 40px;
+            background: #f2f4f8; min-height: 100vh; padding-bottom: 90px;
         }
         .topbar {
             background: linear-gradient(135deg, #1a2980, #26d0ce); color: #fff;
@@ -33,6 +33,30 @@
         }
         .badge-bekerja { background: #fff3cd; color: #7a5b00; }
         .badge-selesai { background: #d4edda; color: #155724; }
+        .badge-info { background: #e7f1ff; color: #0a5395; }
+        .tabbar {
+            position: fixed; bottom: 0; left: 0; right: 0; max-width: 460px; margin: 0 auto;
+            display: flex; background: #fff; border-top: 1px solid #e6e6e6;
+            box-shadow: 0 -2px 10px rgba(0,0,0,.06); z-index: 900;
+        }
+        .tabbtn {
+            flex: 1; border: none; background: transparent; padding: 10px 0 14px; cursor: pointer;
+            color: #888; font-weight: 700; font-size: 11px;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+        }
+        .tabbtn .tab-ico { font-size: 19px; }
+        .tabbtn.active { color: #1a2980; }
+        .tabbtn.active .tab-ico { transform: translateY(-2px); }
+        .chip {
+            border: 1.5px solid #ddd; background: #fff; color: #555; border-radius: 20px;
+            padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
+        }
+        .chip.active { border-color: #1a2980; background: #eef2ff; color: #1a2980; }
+        .grup-nama {
+            font-size: 12px; font-weight: 800; color: #1a2980; text-transform: uppercase;
+            letter-spacing: .4px; margin: 16px 0 4px; padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
         .item {
             display: flex; align-items: center; justify-content: space-between; gap: 10px;
             padding: 12px 0; border-top: 1px solid #f0f0f0;
@@ -78,6 +102,10 @@
         .hidden { display: none; }
         .empty { color: #999; font-size: 14px; text-align: center; padding: 14px 0; }
         .foto-mini { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; flex-shrink: 0; }
+        #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 1200; }
+        #loading-overlay.show { display: flex; }
+        .spinner { width: 42px; height: 42px; border: 5px solid #eef2ff; border-top-color: #1a2980; border-radius: 50%; margin: 0 auto; animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -91,6 +119,7 @@
 </div>
 
 <div class="container">
+    @php $awalTab = (request()->has('bulan') || request()->has('tahun')) ? 'riwayat' : 'tambah'; @endphp
     @if(session('error'))
         <div class="alert alert-error">{{ session('error') }}</div>
     @endif
@@ -98,22 +127,25 @@
         <div class="alert alert-sukses">{{ session('sukses') }}</div>
     @endif
 
-    {{-- ===== SEDANG BEKERJA (tombol selesaikan) ===== --}}
-    @if($sedangBekerja->isNotEmpty())
-        <div class="card">
-            <h3>⏰ Sedang Bekerja</h3>
+    {{-- ===== STATUS HARI INI ===== --}}
+    <div class="card">
+        <h3>📌 Status Hari Ini</h3>
+        @if($sedangBekerja->isEmpty() && $selesaiHariIni->isEmpty())
+            <div class="empty">Belum absen hari ini.</div>
+            <button type="button" class="btn btn-blue" style="width:100%;" onclick="pilihTab('tambah')">➕ MULAI ABSEN SEKARANG</button>
+        @else
             @foreach($sedangBekerja as $a)
                 <div class="item">
                     <div>
-                        <div class="nama">{{ $a->karyawan && $a->karyawan->nama_karyawan ? $a->karyawan->nama_karyawan : 'Absen' }}</div>
-                        <div class="info">{{ optional($a->jenis)->jenis_pekerjaan ?? 'Pekerjaan' }} — {{ $a->tanggal }}</div>
+                        <div class="nama">{{ optional($a->jenis)->jenis_pekerjaan ?? 'Pekerjaan' }}</div>
+                        <div class="info">masuk {{ $a->jam_masuk ? \Carbon\Carbon::parse($a->jam_masuk)->format('H:i') : '-' }}</div>
                         <div><span class="badge badge-bekerja">SEDANG BEKERJA</span></div>
                     </div>
                     <button type="button" class="btn btn-yellow btn-selesai" data-id="{{ $a->id_absen }}">SELESAIKAN</button>
                 </div>
 
                 {{-- Form selesaikan: upload foto selesai --}}
-                <form id="selesai-form-{{ $a->id_absen }}" method="POST" action="{{ route('absen.selesai') }}" enctype="multipart/form-data" class="hidden" style="margin-top:10px;">
+                <form id="selesai-form-{{ $a->id_absen }}" method="POST" action="{{ route('absen.selesai') }}" enctype="multipart/form-data" class="hidden" style="margin-top:10px;" data-lembur="{{ $a->id_jenis_pekerjaan == 8 ? '1' : '0' }}">
                     @csrf
                     <input type="hidden" name="id_absen" value="{{ $a->id_absen }}">
                     <input type="hidden" name="lembur" value="0">
@@ -132,66 +164,7 @@
                     </div>
                 </form>
             @endforeach
-        </div>
-    @endif
-
-    {{-- ===== FORM ABSEN BARU ===== --}}
-    <div class="card">
-        <h3>➕ Absen Baru</h3>
-        <form id="absen-form" method="POST" action="{{ route('absen.store') }}" enctype="multipart/form-data">
-            @csrf
-            <label>Jenis Pekerjaan</label>
-            <div class="jenis-grid" id="jenisGrid">
-                @foreach($jenis as $j)
-                    <button type="button" class="jenis-btn" data-id="{{ $j->id }}" data-nama="{{ $j->jenis_pekerjaan }}">{{ $j->jenis_pekerjaan }}</button>
-                @endforeach
-            </div>
-            <input type="hidden" name="id_jenis" id="id_jenis" value="">
-
-            <div id="jamLembur" class="hidden">
-                <div style="display:flex;gap:12px;">
-                    <div style="flex:1;">
-                        <label>Jam Mulai Lembur</label>
-                        <input type="time" name="jam_mulai" id="jam_mulai">
-                    </div>
-                    <div style="flex:1;">
-                        <label>Jam Selesai Lembur</label>
-                        <input type="time" name="jam_selesai" id="jam_selesai">
-                    </div>
-                </div>
-            </div>
-
-            <label>Tanggal</label>
-            <input type="date" name="tanggal" max="{{ \Carbon\Carbon::now('Asia/Makassar')->toDateString() }}" value="{{ \Carbon\Carbon::now('Asia/Makassar')->toDateString() }}">
-            <div class="info" style="color:#aaa;font-size:12px;margin-top:4px;">Otomatis hari ini. Bisa ubah ke tanggal lalu bila lupa absen.</div>
-
-            <label>Foto Masuk</label>
-            <div class="photo-box" id="box-masuk">
-                <div class="photo-placeholder">
-                    <i class="fas fa-camera fa-2x"></i>
-                    <div>Ambil Foto Masuk</div>
-                </div>
-                <img id="img-masuk" src="" alt="pratinjau" class="hidden">
-                <input type="file" name="foto" id="file-masuk" accept="image/*"  class="hidden" required>
-                <div class="preview-actions hidden" id="actions-masuk">
-                    <button type="button" class="btn btn-ghost" onclick="batalkanFoto('masuk')">FOTO ULANG</button>
-                </div>
-            </div>
-
-            <label>Keterangan (opsional)</label>
-            <input type="text" name="ket" maxlength="255" placeholder="contoh: lembur 2 jam, jaga malam, dll">
-
-            <button type="submit" id="btn-submit-absen" class="btn btn-blue" style="margin-top:18px;">MULAI ABSEN</button>
-        </form>
-    </div>
-
-    {{-- ===== RIWAYAT HARI INI ===== --}}
-    <div class="card">
-        <h3>📋 Riwayat Hari Ini</h3>
-        @if($riwayat->isEmpty())
-            <div class="empty">Belum ada absen selesai hari ini.</div>
-        @else
-            @foreach($riwayat as $a)
+            @foreach($selesaiHariIni as $a)
                 <div class="item">
                     @if($a->foto_masuk)
                         <img class="foto-mini" src="{{ asset($a->foto_masuk) }}" alt="masuk">
@@ -200,7 +173,10 @@
                     @endif
                     <div style="flex:1">
                         <div class="nama">{{ optional($a->jenis)->jenis_pekerjaan ?? 'Pekerjaan' }}</div>
-                        <div class="info">{{ $a->tanggal }}</div>
+                        <div class="info">
+                            @if($a->jam_masuk){{ \Carbon\Carbon::parse($a->jam_masuk)->format('H:i') }}@endif
+                            @if($a->jam_selesai) – {{ \Carbon\Carbon::parse($a->jam_selesai)->format('H:i') }}@endif
+                        </div>
                         <div><span class="badge badge-selesai">SELESAI</span></div>
                     </div>
                 </div>
@@ -208,7 +184,153 @@
         @endif
     </div>
 
+    {{-- ===== PANEL TAMBAH ABSEN ===== --}}
+    <div id="tab-tambah" class="tab-panel {{ $awalTab !== 'tambah' ? 'hidden' : '' }}">
+        <div class="card">
+            <h3>➕ Tambah Absen</h3>
+            <form id="absen-form" method="POST" action="{{ route('absen.store') }}" enctype="multipart/form-data">
+                @csrf
+
+                <label>Tanggal</label>
+                <input type="date" name="tanggal" max="{{ \Carbon\Carbon::now('Asia/Makassar')->toDateString() }}" value="{{ \Carbon\Carbon::now('Asia/Makassar')->toDateString() }}">
+                <div style="color:#aaa;font-size:12px;margin-top:4px;">Otomatis hari ini. Bisa ubah ke tanggal lalu bila lupa absen.</div>
+
+                <label>Jenis Pekerjaan</label>
+                <div class="jenis-grid" id="jenisGrid">
+                    @foreach($jenis as $j)
+                        <button type="button" class="jenis-btn" data-id="{{ $j->id }}" data-nama="{{ $j->jenis_pekerjaan }}">{{ $j->jenis_pekerjaan }}</button>
+                    @endforeach
+                </div>
+                <input type="hidden" name="id_jenis" id="id_jenis" value="">
+
+                <div id="jamLembur" class="hidden">
+                    <div style="display:flex;gap:12px;">
+                        <div style="flex:1;">
+                            <label>Jam Mulai Lembur</label>
+                            <input type="time" name="jam_mulai" id="jam_mulai">
+                        </div>
+                        <div style="flex:1;">
+                            <label>Jam Selesai Lembur</label>
+                            <input type="time" name="jam_selesai" id="jam_selesai">
+                        </div>
+                    </div>
+                </div>
+
+                <label>Foto Masuk</label>
+                <div class="photo-box" id="box-masuk">
+                    <div class="photo-placeholder">
+                        <i class="fas fa-camera fa-2x"></i>
+                        <div>Ambil Foto Masuk</div>
+                    </div>
+                    <img id="img-masuk" src="" alt="pratinjau" class="hidden">
+                    <input type="file" name="foto" id="file-masuk" accept="image/*"  class="hidden" required>
+                    <div class="preview-actions hidden" id="actions-masuk">
+                        <button type="button" class="btn btn-ghost" onclick="batalkanFoto('masuk')">FOTO ULANG</button>
+                    </div>
+                </div>
+
+                <label>Keterangan (opsional)</label>
+                <input type="text" name="ket" maxlength="255" placeholder="contoh: lembur 2 jam, jaga malam, dll">
+
+                <button type="submit" id="btn-submit-absen" class="btn btn-blue" style="margin-top:18px;">MULAI ABSEN</button>
+            </form>
+        </div>
+    </div>
+
+    {{-- ===== PANEL CUTI ===== --}}
+    <div id="tab-cuti" class="tab-panel hidden">
+        <div class="card">
+            <h3>🏖️ Cuti / Libur
+                <span class="badge badge-selesai" style="float:right;">Sisa Cuti Tahunan: {{ $sisaJatah }} hari</span>
+            </h3>
+            <form id="form-cuti" method="POST" action="{{ route('absen.cuti') }}">
+                @csrf
+                <label>Jenis</label>
+                <select name="jenis_cuti" id="jenisCuti" style="width:100%;padding:14px;font-size:16px;border:2px solid #ddd;border-radius:12px;">
+                    <option value="17">Cuti Tahunan (dibayar, jatah 12 hari/tahun)</option>
+                    <option value="12">Libur Pulang Luar Kota</option>
+                </select>
+                <label>Tanggal</label>
+                <div id="daftar-tanggal-cuti">
+                    <div style="display:flex;gap:8px;margin-bottom:8px;">
+                        <input type="date" name="tanggal_cuti[]" class="tgl-cuti" style="flex:1;">
+                        <button type="button" class="btn btn-sm" onclick="hapusTanggalCuti(this)">✕</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm" id="btn-tambah-tgl" style="width:100%;">+ TAMBAH TANGGAL</button>
+                <label>Keterangan (opsional)</label>
+                <input type="text" name="ket" maxlength="255" placeholder="contoh: acara keluarga">
+                <button type="submit" class="btn btn-blue" style="margin-top:18px;">SIMPAN CUTI</button>
+            </form>
+        </div>
+    </div>
+
+    {{-- ===== PANEL RIWAYAT ===== --}}
+    <div id="tab-riwayat" class="tab-panel {{ $awalTab !== 'riwayat' ? 'hidden' : '' }}">
+        <div class="card">
+            <h3>📋 Riwayat Absen</h3>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;">
+                <a class="btn btn-sm" href="{{ route('absen.index', $prev) }}">◀</a>
+                <div style="font-weight:700;font-size:15px;color:#1a2980;">{{ $namaBulan }}</div>
+                <a class="btn btn-sm" href="{{ route('absen.index', $next) }}">▶</a>
+            </div>
+
+            @if($ringkasan->isNotEmpty())
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+                    @foreach($ringkasan as $r)
+                        <span class="badge badge-info">{{ $r->nama }}: {{ $r->jumlah }}</span>
+                    @endforeach
+                </div>
+            @endif
+
+            @if($riwayatBulan->isEmpty())
+                <div class="empty">Tidak ada absen pada bulan ini.</div>
+            @else
+                {{-- Filter chip per jenis --}}
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="filterJenis">
+                    <button type="button" class="chip active" data-jenis="all">Semua</button>
+                    @foreach($riwayatBulan->groupBy('id_jenis_pekerjaan') as $jid => $grup)
+                        <button type="button" class="chip" data-jenis="{{ $jid }}">{{ optional($grup->first()->jenis)->jenis_pekerjaan ?? 'Jenis ' . $jid }}</button>
+                    @endforeach
+                </div>
+
+                @foreach($riwayatBulan->groupBy('id_jenis_pekerjaan') as $jid => $grup)
+                    <div class="grup-jenis" data-jenis="{{ $jid }}">
+                        <div class="grup-nama">{{ optional($grup->first()->jenis)->jenis_pekerjaan ?? 'Jenis ' . $jid }}</div>
+                        @foreach($grup as $a)
+                            <div class="item">
+                                @if($a->foto_masuk)
+                                    <img class="foto-mini" src="{{ asset($a->foto_masuk) }}" alt="masuk">
+                                @elseif($a->foto_selesai)
+                                    <img class="foto-mini" src="{{ asset($a->foto_selesai) }}" alt="selesai">
+                                @endif
+                                <div style="flex:1">
+                                    <div class="info">
+                                        {{ \Carbon\Carbon::parse($a->tanggal)->locale('id')->translatedFormat('d M Y') }}
+                                        @if($a->jam_masuk) · {{ \Carbon\Carbon::parse($a->jam_masuk)->format('H:i') }}@endif
+                                        @if($a->jam_selesai) – {{ \Carbon\Carbon::parse($a->jam_selesai)->format('H:i') }}@endif
+                                    </div>
+                                    <span class="badge {{ $a->status === 'bekerja' ? 'badge-bekerja' : 'badge-selesai' }}">{{ strtoupper($a->status) }}</span>
+                                    @if($a->jumlah_hari && $a->jumlah_hari > 1)
+                                        <span class="badge badge-info">{{ $a->jumlah_hari }} hari</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endforeach
+            @endif
+        </div>
+    </div>
+
 </div>
+
+{{-- Bottom tab bar --}}
+<nav class="tabbar">
+    <button type="button" class="tabbtn {{ $awalTab === 'tambah' ? 'active' : '' }}" data-tab="tambah"><span class="tab-ico">➕</span>Tambah Absen</button>
+    <button type="button" class="tabbtn {{ $awalTab === 'cuti' ? 'active' : '' }}" data-tab="cuti"><span class="tab-ico">🏖️</span>Cuti</button>
+    <button type="button" class="tabbtn {{ $awalTab === 'riwayat' ? 'active' : '' }}" data-tab="riwayat"><span class="tab-ico">📋</span>Riwayat</button>
+</nav>
 
 {{-- Dialog tanya lembur saat selesai --}}
 <div id="lembur-dialog">
@@ -244,6 +366,14 @@
     #lembur-dialog.show { display: flex; }
 </style>
 
+{{-- Overlay loading --}}
+<div id="loading-overlay">
+    <div style="background:#fff;border-radius:12px;padding:24px 32px;text-align:center;">
+        <div class="spinner"></div>
+        <div id="loading-text" style="margin-top:12px;font-weight:700;color:#1a2980;">Menyimpan...</div>
+    </div>
+</div>
+
 <script>
     // Pilih jenis pekerjaan
     document.querySelectorAll('.jenis-btn').forEach(btn => {
@@ -278,6 +408,26 @@
         });
     });
 
+    // Overlay loading
+    function tampilkanLoading(teks) {
+        document.getElementById('loading-text').textContent = teks || 'Menyimpan...';
+        document.getElementById('loading-overlay').classList.add('show');
+    }
+
+    // Kirim form selesai via fetch (agar foto lembur ikut terlampir walau di luar form)
+    let fileLembur = null;
+    function kirimSelesai(f) {
+        const fd = new FormData(f);
+        if (fileLembur) { fd.append('foto_lembur', fileLembur); fileLembur = null; }
+        tampilkanLoading('Menyimpan...');
+        fetch(f.action, { method: 'POST', body: fd })
+            .then(r => {
+                if (r.redirected) { window.location.href = r.url; return; }
+                window.location.reload();
+            })
+            .catch(() => window.location.reload());
+    }
+
     // Tanya lembur saat SIMPAN selesai
     let pendingForm = null;
     let lemburStep = 0; // 0 = tanya, 1 = konfirmasi jam
@@ -298,6 +448,12 @@
     document.querySelectorAll('form[id^="selesai-form-"]').forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
+            // Baris yang sudah LEMBUR (jenis 8): langsung selesai, tanpa tanya lembur.
+            if (form.dataset.lembur === '1') {
+                tampilkanLoading('Menyimpan...');
+                form.submit();
+                return;
+            }
             pendingForm = form;
             lemburStep = 0;
             document.getElementById('lembur-jam').value = new Date().toTimeString().slice(0, 5);
@@ -313,7 +469,7 @@
         f.querySelector('input[name="lembur"]').value = '0';
         f.querySelector('input[name="jam_lembur"]').value = '';
         tutupLemburDialog();
-        f.submit();
+        kirimSelesai(f);
     });
     document.getElementById('lembur-ya').addEventListener('click', () => {
         if (!pendingForm) return;
@@ -329,10 +485,58 @@
         if (!jam) { alert('Isi dulu jam selesai lembur.'); return; }
         const lf = document.getElementById('file-lembur-selesai');
         if (!lf.files.length) { alert('Ambil dulu foto selesai lembur.'); return; }
+        fileLembur = lf.files[0];
         f.querySelector('input[name="lembur"]').value = '1';
         f.querySelector('input[name="jam_lembur"]').value = jam;
         tutupLemburDialog();
-        f.submit();
+        kirimSelesai(f);
+    });
+
+    // Tab navigasi
+    function pilihTab(nama) {
+        ['tambah', 'cuti', 'riwayat'].forEach(t => {
+            document.getElementById('tab-' + t).classList.toggle('hidden', t !== nama);
+        });
+        document.querySelectorAll('.tabbtn').forEach(b => {
+            b.classList.toggle('active', b.dataset.tab === nama);
+        });
+    }
+    document.querySelectorAll('.tabbtn').forEach(b => {
+        b.addEventListener('click', () => pilihTab(b.dataset.tab));
+    });
+
+    // Filter riwayat per jenis
+    document.querySelectorAll('#filterJenis .chip').forEach(c => {
+        c.addEventListener('click', () => {
+            document.querySelectorAll('#filterJenis .chip').forEach(x => x.classList.remove('active'));
+            c.classList.add('active');
+            const jenis = c.dataset.jenis;
+            document.querySelectorAll('.grup-jenis').forEach(g => {
+                g.style.display = (jenis === 'all' || g.dataset.jenis === jenis) ? '' : 'none';
+            });
+        });
+    });
+
+    // Cuti / Libur mandiri
+    function hapusTanggalCuti(btn) {
+        const row = btn.closest('div');
+        const list = document.getElementById('daftar-tanggal-cuti');
+        if (list.children.length <= 1) { row.querySelector('.tgl-cuti').value = ''; return; }
+        row.remove();
+    }
+    document.getElementById('btn-tambah-tgl').addEventListener('click', () => {
+        const list = document.getElementById('daftar-tanggal-cuti');
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;';
+        row.innerHTML = '<input type="date" name="tanggal_cuti[]" class="tgl-cuti" style="flex:1;">'
+            + '<button type="button" class="btn btn-sm" onclick="hapusTanggalCuti(this)">✕</button>';
+        list.appendChild(row);
+    });
+    document.getElementById('form-cuti').addEventListener('submit', function(e) {
+        let ada = false;
+        document.querySelectorAll('#daftar-tanggal-cuti .tgl-cuti').forEach(i => { if (i.value) ada = true; });
+        if (!ada) { alert('Pilih minimal satu tanggal.'); e.preventDefault(); return; }
+        tampilkanLoading('Menyimpan...');
     });
 
     // Foto selesai: pratinjau
@@ -387,6 +591,11 @@
                                      : document.getElementById('file-' + key);
         if (input) input.value = '';
     }
+
+    // MULAI ABSEN: tampilkan loading
+    document.getElementById('absen-form').addEventListener('submit', function() {
+        tampilkanLoading('Menyimpan...');
+    });
 </script>
 
 </body>

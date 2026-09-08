@@ -50,7 +50,7 @@ class KaryawanAbsenController extends Controller
         return redirect()->route('absen.login');
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $id = session('absen_karyawan.id');
         $karyawan = Karyawan::find($id);
@@ -62,24 +62,122 @@ class KaryawanAbsenController extends Controller
             ->with('karyawan')
             ->get();
 
-        // Riwayat / yang sudah selesai hari ini
-        $riwayat = Absensi::where('id_karyawan', $id)
+        // Yang sudah selesai hari ini (untuk status "sudah absen atau belum")
+        $hariIni = now('Asia/Makassar')->toDateString();
+        $selesaiHariIni = Absensi::where('id_karyawan', $id)
             ->where('status', 'selesai')
-            ->whereDate('tanggal', now('Asia/Makassar')->toDateString())
+            ->whereDate('tanggal', $hariIni)
             ->orderBy('id_absen', 'desc')
-            ->with('karyawan')
+            ->with('jenis')
             ->get();
 
         // Jenis yang dipakai untuk foto mandiri (sembunyikan CUTI & LIBUR PULANG)
         $sembunyi = [12, 17];
         $jenis = Jenis::whereNotIn('id', $sembunyi)->get();
 
+        // Sisa jatah Cuti Tahunan (12 hari/tahun, Jan-Des)
+        $terpakai = (int) Absensi::where('id_karyawan', $id)
+            ->where('id_jenis_pekerjaan', 17)
+            ->whereBetween('tanggal', [date('Y') . '-01-01', date('Y') . '-12-31'])
+            ->sum('jumlah_hari');
+        $sisaJatah = max(0, 12 - $terpakai);
+
+        // Riwayat per bulan (filter: ?bulan=..&tahun=..)
+        $wita = now('Asia/Makassar');
+        $bulan = min(12, max(1, (int) $request->query('bulan', $wita->month)));
+        $tahun = min($wita->year, max(2020, (int) $request->query('tahun', $wita->year)));
+        $awal = "{$tahun}-" . str_pad((string) $bulan, 2, '0', STR_PAD_LEFT) . '-01';
+        $akhir = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()->toDateString();
+
+        $riwayatBulan = Absensi::where('id_karyawan', $id)
+            ->whereBetween('tanggal', [$awal, $akhir])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id_absen', 'desc')
+            ->with('jenis')
+            ->get();
+
+        // Ringkasan per jenis (cuti menjumlahkan jumlah_hari, lainnya 1 per baris)
+        $ringkasan = Absensi::where('id_karyawan', $id)
+            ->whereBetween('tanggal', [$awal, $akhir])
+            ->join('jenis_pekerjaan', 'jenis_pekerjaan.id', 'absensi.id_jenis_pekerjaan')
+            ->selectRaw('jenis_pekerjaan.jenis_pekerjaan as nama, SUM(COALESCE(absensi.jumlah_hari, 1)) as jumlah')
+            ->groupBy('jenis_pekerjaan.jenis_pekerjaan')
+            ->orderBy('jumlah', 'desc')
+            ->get();
+
+        $prev = ['bulan' => $bulan === 1 ? 12 : $bulan - 1, 'tahun' => $bulan === 1 ? $tahun - 1 : $tahun];
+        $next = ['bulan' => $bulan === 12 ? 1 : $bulan + 1, 'tahun' => $bulan === 12 ? $tahun + 1 : $tahun];
+        $namaBulan = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->locale('id')->translatedFormat('F Y');
+
         return view('absen.absen', [
             'karyawan' => $karyawan,
             'sedangBekerja' => $sedangBekerja,
-            'riwayat' => $riwayat,
+            'selesaiHariIni' => $selesaiHariIni,
             'jenis' => $jenis,
+            'sisaJatah' => $sisaJatah,
+            'riwayatBulan' => $riwayatBulan,
+            'ringkasan' => $ringkasan,
+            'namaBulan' => $namaBulan,
+            'prev' => $prev,
+            'next' => $next,
         ]);
+    }
+
+    public function addCuti(Request $request)
+    {
+        $request->validate([
+            'jenis_cuti' => 'required|in:12,17',
+            'tanggal_cuti' => 'required|array|min:1',
+            'tanggal_cuti.*' => 'required|date',
+            'ket' => 'nullable|string|max:255',
+        ]);
+
+        $id = session('absen_karyawan.id');
+        $jenis_cuti = (int) $request->jenis_cuti;
+
+        $tanggal = array_values(array_unique($request->tanggal_cuti));
+        sort($tanggal);
+
+        // Buang tanggal yang sudah tercatat untuk karyawan + jenis yang sama
+        $sudahAda = Absensi::where('id_karyawan', $id)
+            ->where('id_jenis_pekerjaan', $jenis_cuti)
+            ->whereIn('tanggal', $tanggal)
+            ->pluck('tanggal')->all();
+        $baru = array_values(array_diff($tanggal, $sudahAda));
+
+        if (empty($baru)) {
+            return back()->with('error', 'Semua tanggal cuti ini sudah tercatat.');
+        }
+
+        $jumlah_hari = count($baru);
+        $ket = trim(($request->ket ?? '') . ' | ' . $jumlah_hari . ' hari: ' . implode(', ', $baru));
+
+        // Cuti tahunan (17) dibayar maksimal 12 hari per tahun (Jan-Des).
+        // Kelebihan hari otomatis ditandai "TIDAK DIBAYAR" di keterangan.
+        $terpakai = (int) Absensi::where('id_karyawan', $id)
+            ->where('id_jenis_pekerjaan', 17)
+            ->whereBetween('tanggal', [date('Y') . '-01-01', date('Y') . '-12-31'])
+            ->sum('jumlah_hari');
+        $sisa_jatah = max(0, 12 - $terpakai);
+        $hari_tidak_dibayar = $jenis_cuti === 17 ? max(0, $jumlah_hari - $sisa_jatah) : 0;
+        if ($hari_tidak_dibayar > 0) {
+            $ket .= ' | ' . $hari_tidak_dibayar . ' hari TIDAK DIBAYAR (jatah cuti 12 hari habis)';
+        }
+
+        Absensi::create([
+            'id_karyawan' => $id,
+            'id_jenis_pekerjaan' => $jenis_cuti,
+            'id_pemakai' => 1,
+            'tanggal' => $baru[0],
+            'jumlah_hari' => $jumlah_hari,
+            'ket' => $ket,
+            'status' => 'selesai',
+        ]);
+
+        return redirect()->route('absen.index')->with('sukses',
+            $hari_tidak_dibayar > 0
+                ? 'Cuti/Libur dicatat. Jatah habis: ' . $hari_tidak_dibayar . ' hari TIDAK DIBAYAR.'
+                : 'Cuti/Libur dicatat (' . $jumlah_hari . ' hari).');
     }
 
     public function store(Request $request)
