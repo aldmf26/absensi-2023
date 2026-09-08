@@ -161,6 +161,7 @@ class KaryawanAbsenController extends Controller
         $request->validate([
             'id_absen' => 'required|integer',
             'foto' => 'required|image|mimes:jpeg,jpg,png|max:5120',
+            'foto_lembur' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
         ]);
 
         $id = session('absen_karyawan.id');
@@ -188,7 +189,38 @@ class KaryawanAbsenController extends Controller
 
         $absen->update($update);
 
-        return redirect()->route('absen.index')->with('sukses', 'Absen selesai disimpan.');
+        $pesan = 'Absen selesai disimpan.';
+
+        // Lembur dadakan setelah kerja normal: buat BARIS LEMBUR terpisah (jenis 8),
+        // sesuai data lama (tidak digabung ke baris absen normal).
+        if ((int) $request->lembur === 1 && (int) $absen->id_jenis_pekerjaan !== 8) {
+            $wita = now('Asia/Makassar');
+            $jamKlaim = $request->jam_lembur ?: $wita->format('H:i');
+
+            // Foto selesai lembur wajib diambil di dialog.
+            if (! $request->hasFile('foto_lembur')) {
+                return back()->with('error', 'Ambil dulu foto selesai lembur.');
+            }
+
+            $fotoLembur = $this->simpanFoto($request->file('foto_lembur'), 'selesai');
+
+            Absensi::create([
+                'id_karyawan' => $id,
+                'id_jenis_pekerjaan' => 8,
+                'id_pemakai' => $absen->id_pemakai ?? 1,
+                'tanggal' => $absen->tanggal,
+                'ket' => 'Lembur | Mulai ' . $wita->format('H:i') . ' - Selesai ' . $jamKlaim,
+                'status' => 'selesai',
+                'jam_masuk' => $wita->format('Y-m-d H:i:s'),
+                'jam_selesai' => $absen->tanggal . ' ' . $jamKlaim . ':00',
+                'foto_selesai' => $fotoLembur,
+                'jumlah_hari' => null,
+            ]);
+
+            $pesan = 'Absen selesai & baris Lembur baru ditambahkan.';
+        }
+
+        return redirect()->route('absen.index')->with('sukses', $pesan);
     }
 
     private function simpanFoto($file, $jenis)

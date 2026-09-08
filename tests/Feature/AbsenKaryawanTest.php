@@ -188,4 +188,107 @@ class AbsenKaryawanTest extends TestCase
         $this->assertNotNull($absen->jam_masuk); // harian (9) mencatat jam otomatis
         $this->assertNotNull($absen->jam_selesai);
     }
+
+    public function test_selesai_lembur_dadakan_buat_baris_lembur_terpisah()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        // absen harian normal (baris 1)
+        $this->post('/absen', [
+            'id_jenis' => 9,
+            'tanggal' => now()->toDateString(),
+            'foto' => UploadedFile::fake()->image('masuk.jpg'),
+        ]);
+
+        $absen = Absensi::where('id_karyawan', $kar->id_karyawan)->first();
+
+        // selesai + lembur=1 -> baris Lembur (jenis 8) terpisah dibuat
+        $res = $this->post('/absen/selesai', [
+            'id_absen' => $absen->id_absen,
+            'foto' => UploadedFile::fake()->image('selesai.jpg'),
+            'lembur' => 1,
+            'jam_lembur' => '21:30',
+            'foto_lembur' => UploadedFile::fake()->image('selesai-lembur.jpg'),
+        ]);
+
+        $res->assertRedirect('/absen');
+        $res->assertSessionHas('sukses');
+
+        $absen->refresh();
+        $this->assertEquals('selesai', $absen->status);
+
+        $lembur = Absensi::where('id_karyawan', $kar->id_karyawan)
+            ->where('id_jenis_pekerjaan', 8)->first();
+        $this->assertNotNull($lembur);
+        $this->assertEquals('selesai', $lembur->status);
+        $this->assertEquals('21:30', \Carbon\Carbon::parse($lembur->jam_selesai)->format('H:i'));
+        $this->assertStringContainsString('Lembur', $lembur->ket);
+        $this->assertNotNull($lembur->foto_selesai);
+        // total baris = 2 (harian + lembur) -> tidak digabung
+        $this->assertEquals(2, Absensi::where('id_karyawan', $kar->id_karyawan)->count());
+    }
+
+    public function test_selesai_lembur_tanpa_foto_lembur_ditolak()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        $this->post('/absen', [
+            'id_jenis' => 9,
+            'tanggal' => now()->toDateString(),
+            'foto' => UploadedFile::fake()->image('masuk.jpg'),
+        ]);
+
+        $absen = Absensi::where('id_karyawan', $kar->id_karyawan)->first();
+
+        $res = $this->post('/absen/selesai', [
+            'id_absen' => $absen->id_absen,
+            'foto' => UploadedFile::fake()->image('selesai.jpg'),
+            'lembur' => 1,
+            'jam_lembur' => '21:30',
+        ]);
+
+        $res->assertSessionHas('error');
+    }
+
+    public function test_selesai_tanpa_lembur_tidak_buat_baris_tambahan()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        $this->post('/absen', [
+            'id_jenis' => 9,
+            'tanggal' => now()->toDateString(),
+            'foto' => UploadedFile::fake()->image('masuk.jpg'),
+        ]);
+
+        $absen = Absensi::where('id_karyawan', $kar->id_karyawan)->first();
+
+        $this->post('/absen/selesai', [
+            'id_absen' => $absen->id_absen,
+            'foto' => UploadedFile::fake()->image('selesai.jpg'),
+            'lembur' => 0,
+        ]);
+
+        $this->assertEquals(1, Absensi::where('id_karyawan', $kar->id_karyawan)->count());
+    }
 }

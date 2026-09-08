@@ -116,6 +116,8 @@
                 <form id="selesai-form-{{ $a->id_absen }}" method="POST" action="{{ route('absen.selesai') }}" enctype="multipart/form-data" class="hidden" style="margin-top:10px;">
                     @csrf
                     <input type="hidden" name="id_absen" value="{{ $a->id_absen }}">
+                    <input type="hidden" name="lembur" value="0">
+                    <input type="hidden" name="jam_lembur" value="">
                     <div class="photo-box" id="selesai-box-{{ $a->id_absen }}">
                         <div class="photo-placeholder">
                             <i class="fas fa-camera fa-2x"></i>
@@ -193,6 +195,8 @@
                 <div class="item">
                     @if($a->foto_masuk)
                         <img class="foto-mini" src="{{ asset($a->foto_masuk) }}" alt="masuk">
+                    @elseif($a->foto_selesai)
+                        <img class="foto-mini" src="{{ asset($a->foto_selesai) }}" alt="selesai">
                     @endif
                     <div style="flex:1">
                         <div class="nama">{{ optional($a->jenis)->jenis_pekerjaan ?? 'Pekerjaan' }}</div>
@@ -205,6 +209,40 @@
     </div>
 
 </div>
+
+{{-- Dialog tanya lembur saat selesai --}}
+<div id="lembur-dialog">
+    <div style="background:#fff;color:#111;padding:20px;border-radius:10px;width:90%;max-width:340px;">
+        <h4 style="margin:0 0 8px;">Selesai Absen?</h4>
+        <p style="margin:0 0 12px;font-size:14px;">Lanjut lembur (baris Lembur terpisah) atau selesai?</p>
+        <div id="lembur-jam-box" class="hidden" style="margin-bottom:12px;">
+            <label for="lembur-jam" style="font-size:13px;">Jam Selesai Lembur</label>
+            <input type="time" id="lembur-jam" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;">
+        </div>
+        <div id="lembur-foto-box" class="hidden" style="margin-bottom:12px;">
+            <label style="font-size:13px;">Foto Selesai Lembur</label>
+            <div class="photo-box" id="lembur-photo-box">
+                <div class="photo-placeholder" id="lembur-photo-placeholder">
+                    <i class="fas fa-camera fa-2x"></i>
+                    <div>Ambil Foto Lembur</div>
+                </div>
+                <img id="img-lembur-selesai" src="" alt="pratinjau" class="hidden" style="width:100%;">
+                <input type="file" name="foto_lembur" id="file-lembur-selesai" accept="image/*" class="hidden">
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button type="button" id="lembur-no" class="btn btn-ghost">TIDAK</button>
+            <button type="button" id="lembur-ya" class="btn btn-yellow">YA, LEMBUR</button>
+        </div>
+    </div>
+</div>
+<style>
+    #lembur-dialog {
+        position: fixed; inset: 0; background: rgba(0,0,0,.55);
+        display: none; align-items: center; justify-content: center; z-index: 999;
+    }
+    #lembur-dialog.show { display: flex; }
+</style>
 
 <script>
     // Pilih jenis pekerjaan
@@ -240,6 +278,63 @@
         });
     });
 
+    // Tanya lembur saat SIMPAN selesai
+    let pendingForm = null;
+    let lemburStep = 0; // 0 = tanya, 1 = konfirmasi jam
+    function tutupLemburDialog() {
+        document.getElementById('lembur-dialog').classList.remove('show');
+        document.getElementById('lembur-jam-box').classList.add('hidden');
+        document.getElementById('lembur-foto-box').classList.add('hidden');
+        const limg = document.getElementById('img-lembur-selesai');
+        if (limg) { limg.src = ''; limg.classList.add('hidden'); }
+        const lbox = document.getElementById('lembur-photo-box');
+        if (lbox) lbox.classList.remove('terpilih');
+        const lf = document.getElementById('file-lembur-selesai');
+        if (lf) lf.value = '';
+        document.getElementById('lembur-ya').textContent = 'YA, LEMBUR';
+        lemburStep = 0;
+        pendingForm = null;
+    }
+    document.querySelectorAll('form[id^="selesai-form-"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            pendingForm = form;
+            lemburStep = 0;
+            document.getElementById('lembur-jam').value = new Date().toTimeString().slice(0, 5);
+            document.getElementById('lembur-dialog').classList.add('show');
+        });
+    });
+    document.getElementById('lembur-dialog').addEventListener('click', function(e) {
+        if (e.target === this) tutupLemburDialog();
+    });
+    document.getElementById('lembur-no').addEventListener('click', () => {
+        if (!pendingForm) return;
+        const f = pendingForm;
+        f.querySelector('input[name="lembur"]').value = '0';
+        f.querySelector('input[name="jam_lembur"]').value = '';
+        tutupLemburDialog();
+        f.submit();
+    });
+    document.getElementById('lembur-ya').addEventListener('click', () => {
+        if (!pendingForm) return;
+        if (lemburStep === 0) {
+            lemburStep = 1;
+            document.getElementById('lembur-jam-box').classList.remove('hidden');
+            document.getElementById('lembur-foto-box').classList.remove('hidden');
+            document.getElementById('lembur-ya').textContent = '✓ SIMPAN LEMBUR';
+            return;
+        }
+        const f = pendingForm;
+        const jam = document.getElementById('lembur-jam').value;
+        if (!jam) { alert('Isi dulu jam selesai lembur.'); return; }
+        const lf = document.getElementById('file-lembur-selesai');
+        if (!lf.files.length) { alert('Ambil dulu foto selesai lembur.'); return; }
+        f.querySelector('input[name="lembur"]').value = '1';
+        f.querySelector('input[name="jam_lembur"]').value = jam;
+        tutupLemburDialog();
+        f.submit();
+    });
+
     // Foto selesai: pratinjau
     document.querySelectorAll('input[type=file]').forEach(input => {
         input.addEventListener('click', function(e) {
@@ -250,7 +345,9 @@
             if (!file) return;
             const key = this.id === 'file-masuk'
                 ? 'masuk'
-                : this.id.replace('file-', '');
+                : this.id === 'file-lembur-selesai'
+                    ? 'lembur-selesai'
+                    : this.id.replace('file-', '');
             const reader = new FileReader();
             reader.onload = e => {
                 const img = document.getElementById('img-' + key);
@@ -258,8 +355,9 @@
                 img.src = e.target.result;
                 img.classList.remove('hidden');
                 const box = key === 'masuk' ? document.getElementById('box-masuk')
-                                           : document.getElementById('selesai-box-' + key);
-                box.classList.add('terpilih');
+                           : key === 'lembur-selesai' ? document.getElementById('lembur-photo-box')
+                           : document.getElementById('selesai-box-' + key);
+                if (box) box.classList.add('terpilih');
                 const actions = document.getElementById('actions-' + key);
                 if (actions) actions.classList.remove('hidden');
             };
