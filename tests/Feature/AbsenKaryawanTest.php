@@ -512,6 +512,48 @@ class AbsenKaryawanTest extends TestCase
         ]);
     }
 
+    public function test_cuti_mode_terpisah_abaikan_rentang_default_hari_ini()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        // Karyawan sudah absen hari ini -> kalau rentang default (hari ini) ikut,
+        // cuti mode terpisah pasti bentrok. Fix: mode terpisah mengabaikan rentang.
+        $hariIni = now('Asia/Makassar')->toDateString();
+        Absensi::create([
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 9,
+            'tanggal' => $hariIni,
+            'status' => 'selesai',
+        ]);
+
+        $res = $this->post('/absen/cuti', [
+            'jenis_cuti' => 17,
+            'mode_cuti' => 'terpisah',
+            'tanggal_mulai' => $hariIni, // default terisi, tapi harus diabaikan
+            'tanggal_sampai' => '',
+            'tanggal_cuti' => ['2026-11-03', '2026-11-05'],
+        ]);
+        $res->assertRedirect('/absen');
+        $res->assertSessionHas('sukses');
+        $this->assertDatabaseHas('absensi', [
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 17,
+            'tanggal' => '2026-11-03',
+        ]);
+        $this->assertDatabaseHas('absensi', [
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 17,
+            'tanggal' => '2026-11-05',
+        ]);
+    }
+
     public function test_sisa_jatah_menghitung_format_lama_dan_baru()
     {
         Jenis::forceCreate(['id' => 9, 'jenis_pekerjaan' => 'Absen Harian', 'keterangan' => 'x']);

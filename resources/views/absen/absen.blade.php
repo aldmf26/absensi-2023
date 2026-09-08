@@ -80,6 +80,7 @@
             border: none; border-radius: 12px; cursor: pointer; font-weight: 700;
         }
         .btn:active { transform: scale(.98); }
+        .btn[disabled] { opacity: .5; pointer-events: none; }
         .btn-green { background: #28a745; color: #fff; font-size: 16px; padding: 14px 18px; width: 100%; }
         .btn-yellow { background: #ffc107; color: #333; font-size: 15px; padding: 12px 18px; white-space: nowrap; }
         .btn-blue { background: #1a2980; color: #fff; font-size: 16px; padding: 15px 18px; width: 100%; }
@@ -271,6 +272,7 @@
             <form id="form-cuti" method="POST" action="{{ route('absen.cuti') }}">
                 @csrf
                 <input type="hidden" name="jenis_cuti" id="jenisCutiValue" value="17">
+                <input type="hidden" name="mode_cuti" id="modeCuti" value="">
 
                 <label>Jenis</label>
                 <div class="cuti-jenis" id="jenisCuti">
@@ -278,15 +280,21 @@
                     <button type="button" class="jenis-btn" data-nilai="12">🛫 Pulang Luar Kota</button>
                 </div>
 
-                <label>Dari Tanggal s/d Sampai <span class="hint">(Sampai opsional — lebih dari 1 hari)</span></label>
-                <div style="display:flex;gap:8px;">
-                    <input type="date" name="tanggal_mulai" id="tgl-mulai" class="in-cuti" value="{{ \Carbon\Carbon::now('Asia/Makassar')->toDateString() }}">
-                    <input type="date" name="tanggal_sampai" id="tgl-sampai" class="in-cuti">
+                <label style="margin-top:16px;">Cara Pilih Tanggal</label>
+                <div class="cuti-jenis" id="modeCutiBtn">
+                    <button type="button" class="jenis-btn" data-mode="rentang">📅 Rentang Tanggal</button>
+                    <button type="button" class="jenis-btn" data-mode="terpisah">📝 Tanggal Terpisah</button>
                 </div>
-                <div id="info-cuti" class="info-cuti"></div>
 
-                <details class="cuti-lanjutan" id="lanjutan">
-                    <summary>Khusus tanggal terpisah (tidak berurutan)</summary>
+                <div id="blok-rentang" class="hidden" style="margin-top:12px;">
+                    <div style="display:flex;gap:8px;">
+                        <input type="date" name="tanggal_mulai" id="tgl-mulai" class="in-cuti" value="{{ \Carbon\Carbon::now('Asia/Makassar')->toDateString() }}">
+                        <input type="date" name="tanggal_sampai" id="tgl-sampai" class="in-cuti">
+                    </div>
+                    <div class="hint" style="margin-top:4px;">Hari ini = cukup kirim begitu saja. Isi tanggal sampai untuk beberapa hari berurutan (mis. 05–08).</div>
+                </div>
+
+                <div id="blok-terpisah" class="hidden" style="margin-top:12px;">
                     <div id="daftar-tanggal-cuti">
                         <div style="display:flex;gap:8px;margin-bottom:8px;">
                             <input type="date" name="tanggal_cuti[]" class="tgl-cuti" style="flex:1;">
@@ -294,11 +302,13 @@
                         </div>
                     </div>
                     <button type="button" class="btn btn-sm" id="btn-tambah-tgl" style="width:100%;">+ TAMBAH TANGGAL</button>
-                </details>
+                </div>
+
+                <div id="info-cuti" class="info-cuti" style="margin-top:8px;"></div>
 
                 <label>Keterangan (opsional)</label>
                 <input type="text" name="ket" maxlength="255" placeholder="contoh: acara keluarga">
-                <button type="submit" class="btn btn-blue" style="margin-top:18px;">SIMPAN CUTI</button>
+                <button type="submit" id="btn-simpan-cuti" class="btn btn-blue" style="margin-top:18px;" disabled>SIMPAN CUTI</button>
             </form>
         </div>
     </div>
@@ -609,9 +619,39 @@
             hitungHariCuti();
         });
     });
-    document.getElementById('tgl-mulai').addEventListener('change', hitungHariCuti);
-    document.getElementById('tgl-sampai').addEventListener('change', hitungHariCuti);
+    function aturRentang() {
+        const mulai = document.getElementById('tgl-mulai');
+        const sampai = document.getElementById('tgl-sampai');
+        if (sampai.value && mulai.value && sampai.value < mulai.value) {
+            const t = sampai.value;
+            sampai.value = mulai.value;
+            mulai.value = t;
+        }
+        hitungHariCuti();
+    }
+
+    document.getElementById('tgl-mulai').addEventListener('change', aturRentang);
+    document.getElementById('tgl-sampai').addEventListener('change', aturRentang);
     document.querySelectorAll('#daftar-tanggal-cuti .tgl-cuti').forEach(i => i.addEventListener('change', hitungHariCuti));
+
+    document.querySelectorAll('#modeCutiBtn .jenis-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            document.querySelectorAll('#modeCutiBtn .jenis-btn').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            const mode = b.dataset.mode;
+            document.getElementById('modeCuti').value = mode;
+            document.getElementById('blok-rentang').classList.toggle('hidden', mode !== 'rentang');
+            document.getElementById('blok-terpisah').classList.toggle('hidden', mode !== 'terpisah');
+            document.getElementById('btn-simpan-cuti').removeAttribute('disabled');
+            if (mode === 'rentang') {
+                document.querySelectorAll('#daftar-tanggal-cuti .tgl-cuti').forEach(i => i.value = '');
+            } else {
+                document.getElementById('tgl-mulai').value = '';
+                document.getElementById('tgl-sampai').value = '';
+            }
+            hitungHariCuti();
+        });
+    });
 
     function hapusTanggalCuti(btn) {
         const row = btn.closest('div');

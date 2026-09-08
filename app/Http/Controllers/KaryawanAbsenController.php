@@ -148,7 +148,7 @@ class KaryawanAbsenController extends Controller
         // Gabungkan: tanggal terpisah (tanggal_cuti[]) + rentang mulai-sampai.
         $tanggal = array_values(array_filter($request->tanggal_cuti ?? []));
 
-        if ($request->tanggal_mulai) {
+        if ($request->mode_cuti !== 'terpisah' && $request->tanggal_mulai) {
             $mulai = new \DateTime($request->tanggal_mulai);
             $sampai = new \DateTime($request->tanggal_sampai ?: $request->tanggal_mulai);
             if ($request->tanggal_sampai && $request->tanggal_sampai < $request->tanggal_mulai) {
