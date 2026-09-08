@@ -100,10 +100,12 @@
                             <a href="{{ route('backupDatabase') }}" class="btn btn-warning mb-3"><i class="fas fa-database"></i>
                                 Backup Database
                             </a>
-                            <button type="button" class="btn btn-danger mb-3" data-toggle="modal"
-                                data-target="#hapusPertanggal"><i class="fa fa-trash"></i>
-                                Hapus Pertanggal
-                            </button>
+                            @if ($canHapusPertanggal)
+                                <button type="button" class="btn btn-danger mb-3" data-toggle="modal"
+                                    data-target="#hapusPertanggal"><i class="fa fa-trash"></i>
+                                    Hapus Pertanggal
+                                </button>
+                            @endif
                             <br>
                             @if (session('info'))
                                 <div class="alert alert-info alert-dismissible ml-4 mr-1">
@@ -257,6 +259,7 @@
                         </form>
                         {{-- end export pertanggal --}}
                         {{-- modal hapus pertanggal --}}
+                        @if ($canHapusPertanggal)
                         <form action="{{ route('hapusPertanggal') }}" method="post"
                             onsubmit="return confirm('Hapus permanen? Data yang dihapus TIDAK bisa dikembalikan.');">
                             @csrf
@@ -312,6 +315,7 @@
                                 </div>
                             </div>
                         </form>
+                        @endif
                         {{-- end hapus pertanggal --}}
 
                         @include('flash.flash')

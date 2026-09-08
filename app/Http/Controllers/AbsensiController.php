@@ -56,6 +56,9 @@ class AbsensiController extends Controller
                 $sisaJatah[$k->id_karyawan] = max(0, 12 - (int) ($pakaiCuti[$k->id_karyawan] ?? 0));
             }
 
+            $userAktif = Auth::user();
+            $canHapusPertanggal = ($userAktif->jenis ?? null) === 'Presiden' && ($userAktif->username ?? null) === 'aldi';
+
             $data = [
                 'title' => 'Absensi',
                 'absensi' => DB::select("SELECT d.id_pemakai,a.id_jenis_pekerjaan, a.id_karyawan, b.nama_karyawan, a.tanggal, c.jenis_pekerjaan, d.pemakai, a.ket ,a.id_absen, a.foto_masuk, a.foto_selesai, a.created_at, a.jam_masuk, a.jam_selesai FROM absensi as a
@@ -73,7 +76,8 @@ class AbsensiController extends Controller
                 'sampai' => $sampai,
                 'id_departemen' => $id_departemen,
                 'filterJenis' => $filterJenis,
-                'sisaJatah' => $sisaJatah
+                'sisaJatah' => $sisaJatah,
+                'canHapusPertanggal' => $canHapusPertanggal
             ];
             return view('absensi.absensi', $data);
         }
@@ -226,6 +230,12 @@ class AbsensiController extends Controller
 
     public function hapusPertanggal(Request $request)
     {
+        // Hanya user Presiden dengan username "aldi" yang boleh hapus pertanggal
+        $user = Auth::user();
+        if (($user->jenis ?? null) !== 'Presiden' || ($user->username ?? null) !== 'aldi') {
+            abort(403, 'Akses ditolak. Hanya Presiden (aldi) yang dapat menghapus pertanggal.');
+        }
+
         $request->validate([
             'dari' => 'required|date',
             'sampai' => 'required|date',
