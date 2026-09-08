@@ -307,7 +307,7 @@
                                         <th>Jam</th>
                                         <th>Foto Masuk</th>
                                         <th>Foto Selesai</th>
-                                        <th>Dibuat Tgl (cek salah input)</th>
+                                        <th>Dibuat Tgl</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>

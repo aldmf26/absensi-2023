@@ -251,6 +251,8 @@ class KaryawanAbsenController extends Controller
     private function cariFontTtf($teks)
     {
         $kandidat = [
+            resource_path('fonts/arialbd.ttf'),
+            resource_path('fonts/DejaVuSans-Bold.ttf'),
             'C:/Windows/Fonts/arialbd.ttf',
             'C:/Windows/Fonts/arial.ttf',
             '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
