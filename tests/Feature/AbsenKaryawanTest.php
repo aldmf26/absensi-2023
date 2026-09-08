@@ -418,13 +418,13 @@ class AbsenKaryawanTest extends TestCase
         $res = $this->get('/absen?bulan=' . $bulanIni . '&tahun=' . $tahunIni);
         $res->assertOk();
         $res->assertSee('Riwayat Absen');
-        $res->assertSee('Absen Harian: 2');
-        $res->assertDontSee('Cuti Tahunan: 2');
+        $res->assertSee('Absen Harian (2)');
+        $res->assertDontSee('Cuti Tahunan (2)');
 
         // bulan lalu: hanya cuti
         $res2 = $this->get('/absen?bulan=' . $bulanLalu . '&tahun=' . $tahunLalu);
         $res2->assertOk();
-        $res2->assertSee('Cuti Tahunan: 2');
-        $res2->assertDontSee('Absen Harian: 2');
+        $res2->assertSee('Cuti Tahunan (2)');
+        $res2->assertDontSee('Absen Harian (2)');
     }
 }

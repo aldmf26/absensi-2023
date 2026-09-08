@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Absen Karyawan</title>
     <link rel="shortcut icon" href="{{ asset('adminlte') }}/images/eabs.ico">
     <link rel="stylesheet" href="{{ asset('adminlte') }}/plugins/fontawesome-free/css/all.min.css">
@@ -11,6 +11,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background: #f2f4f8; min-height: 100vh; padding-bottom: 90px;
+            touch-action: manipulation;
         }
         .topbar {
             background: linear-gradient(135deg, #1a2980, #26d0ce); color: #fff;
@@ -271,26 +272,18 @@
             <h3>📋 Riwayat Absen</h3>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;">
                 <a class="btn btn-sm" href="{{ route('absen.index', $prev) }}">◀</a>
-                <div style="font-weight:700;font-size:15px;color:#1a2980;">{{ $namaBulan }}</div>
+                <input type="month" id="pilih-bulan" value="{{ $tahun }}-{{ str_pad($bulan, 2, '0', STR_PAD_LEFT) }}" style="flex:1;max-width:170px;padding:8px 10px;border:2px solid #ddd;border-radius:10px;font-size:15px;font-weight:700;color:#1a2980;text-align:center;">
                 <a class="btn btn-sm" href="{{ route('absen.index', $next) }}">▶</a>
             </div>
-
-            @if($ringkasan->isNotEmpty())
-                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-                    @foreach($ringkasan as $r)
-                        <span class="badge badge-info">{{ $r->nama }}: {{ $r->jumlah }}</span>
-                    @endforeach
-                </div>
-            @endif
 
             @if($riwayatBulan->isEmpty())
                 <div class="empty">Tidak ada absen pada bulan ini.</div>
             @else
-                {{-- Filter chip per jenis --}}
+                {{-- Filter chip per jenis (sekaligus ringkasan total) --}}
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="filterJenis">
-                    <button type="button" class="chip active" data-jenis="all">Semua</button>
+                    <button type="button" class="chip active" data-jenis="all">Semua ({{ $riwayatBulan->sum(fn($a) => $a->jumlah_hari ?? 1) }})</button>
                     @foreach($riwayatBulan->groupBy('id_jenis_pekerjaan') as $jid => $grup)
-                        <button type="button" class="chip" data-jenis="{{ $jid }}">{{ optional($grup->first()->jenis)->jenis_pekerjaan ?? 'Jenis ' . $jid }}</button>
+                        <button type="button" class="chip" data-jenis="{{ $jid }}">{{ optional($grup->first()->jenis)->jenis_pekerjaan ?? 'Jenis ' . $jid }} ({{ $grup->sum(fn($a) => $a->jumlah_hari ?? 1) }})</button>
                     @endforeach
                 </div>
 
@@ -503,6 +496,12 @@
     }
     document.querySelectorAll('.tabbtn').forEach(b => {
         b.addEventListener('click', () => pilihTab(b.dataset.tab));
+    });
+
+    // Lompat cepat ke bulan/tahun tertentu di riwayat
+    document.getElementById('pilih-bulan').addEventListener('change', function () {
+        const [th, bl] = this.value.split('-');
+        if (bl && th) window.location = '{{ url('absen') }}?bulan=' + parseInt(bl, 10) + '&tahun=' + parseInt(th, 10);
     });
 
     // Filter riwayat per jenis

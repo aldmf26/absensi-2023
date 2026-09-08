@@ -118,6 +118,8 @@ class KaryawanAbsenController extends Controller
             'riwayatBulan' => $riwayatBulan,
             'ringkasan' => $ringkasan,
             'namaBulan' => $namaBulan,
+            'bulan' => $bulan,
+            'tahun' => $tahun,
             'prev' => $prev,
             'next' => $next,
         ]);
@@ -216,7 +218,8 @@ class KaryawanAbsenController extends Controller
             return back()->with('error', 'Sudah ada absen jenis ini pada tanggal tersebut.');
         }
 
-        $fotoPath = $this->simpanFoto($request->file('foto'), 'masuk');
+        $namaJenis = Jenis::where('id', $jenisId)->value('jenis_pekerjaan');
+        $fotoPath = $this->simpanFoto($request->file('foto'), 'masuk', $namaJenis);
 
         $data = [
             'id_karyawan' => $id,
@@ -272,7 +275,8 @@ class KaryawanAbsenController extends Controller
             return back()->with('error', 'Absen tidak ditemukan atau sudah selesai.');
         }
 
-        $fotoPath = $this->simpanFoto($request->file('foto'), 'selesai');
+        $namaJenis = Jenis::where('id', $absen->id_jenis_pekerjaan)->value('jenis_pekerjaan');
+        $fotoPath = $this->simpanFoto($request->file('foto'), 'selesai', $namaJenis);
 
         $update = [
             'foto_selesai' => $fotoPath,
@@ -300,7 +304,7 @@ class KaryawanAbsenController extends Controller
                 return back()->with('error', 'Ambil dulu foto selesai lembur.');
             }
 
-            $fotoLembur = $this->simpanFoto($request->file('foto_lembur'), 'selesai');
+            $fotoLembur = $this->simpanFoto($request->file('foto_lembur'), 'selesai', 'Lembur');
 
             Absensi::create([
                 'id_karyawan' => $id,
@@ -321,7 +325,7 @@ class KaryawanAbsenController extends Controller
         return redirect()->route('absen.index')->with('sukses', $pesan);
     }
 
-    private function simpanFoto($file, $jenis)
+    private function simpanFoto($file, $jenis, $namaJenis = null)
     {
         $nama = Karyawan::where('id_karyawan', session('absen_karyawan.id'))->value('nama_karyawan');
 
@@ -338,31 +342,32 @@ class KaryawanAbsenController extends Controller
         if ($img) {
             $img->orientate();
 
-            // Watermark timestamp (anti-palsu): teks putih + latar gelap solid
-            // agar selalu terlihat walau foto berlatar terang.
-            $text = 'Absen ' . strtoupper($jenis) . ' | ' . $waktu->format('d-m-Y H:i:s') . ' WITA';
+            // Watermark header (anti-palsu): jenis pekerjaan + timestamp di atas foto,
+            // huruf besar tebal tanpa latar.
+            $label = $namaJenis ? strtoupper($namaJenis) : 'ABSEN ' . strtoupper($jenis);
+            $barisWaktu = $waktu->format('d-m-Y H:i:s') . ' WITA';
             try {
-                $fontPath = $this->cariFontTtf($text);
+                $fontPath = $this->cariFontTtf($label . ' ' . $barisWaktu);
                 if ($fontPath) {
-                    // Ukuran font proporsional dengan lebar foto (HP resolusi tinggi),
-                    // supaya tulisan tetap kebaca kapan pun.
-                    $fontSize = max(40, (int) round($img->width() * 0.02));
-                    // perkiraan lebar/tinggi teks untuk kotak latar
-                    $bbox = imagettfbbox($fontSize, 0, $fontPath, $text);
-                    $tw = $bbox[2] - $bbox[0];
-                    $th = $bbox[1] - $bbox[7];
-                    $pad = (int) round($fontSize * 0.4);
-                    $x = $pad;
-                    $y = $pad;
+                    // Ukuran font besar, proporsional dengan lebar foto (resolusi HP tinggi)
+                    $fontSize = max(56, (int) round($img->width() * 0.03));
+                    $centerX = (int) round($img->width() / 2);
+                    $marginTop = (int) round($fontSize * 0.5);
 
-                    $img->rectangle($x - $pad, $y - $pad, $x + $tw + $pad, $y + $th + $pad, function ($draw) {
-                        $draw->background([30, 30, 45]);
-                    });
-                    $img->text($text, $x, $y, function ($font) use ($fontPath, $fontSize) {
+                    $img->text($label, $centerX, $marginTop, function ($font) use ($fontPath, $fontSize) {
                         $font->file($fontPath);
                         $font->size($fontSize);
                         $font->color([255, 255, 255]);
-                        $font->align('left');
+                        $font->align('center');
+                        $font->valign('top');
+                    });
+                    $bbox = imagettfbbox($fontSize, 0, $fontPath, $label);
+                    $th = $bbox[1] - $bbox[7];
+                    $img->text($barisWaktu, $centerX, $marginTop + $th + (int) round($fontSize * 0.2), function ($font) use ($fontPath, $fontSize) {
+                        $font->file($fontPath);
+                        $font->size($fontSize);
+                        $font->color([255, 255, 255]);
+                        $font->align('center');
                         $font->valign('top');
                     });
                 }
