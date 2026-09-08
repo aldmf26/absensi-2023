@@ -75,11 +75,13 @@ class KaryawanAbsenController extends Controller
         $sembunyi = [12, 17];
         $jenis = Jenis::whereNotIn('id', $sembunyi)->get();
 
-        // Sisa jatah Cuti Tahunan (12 hari/tahun, Jan-Des)
+        // Sisa jatah Cuti Tahunan (12 hari/tahun, Jan-Des).
+        // COALESCE(jumlah_hari,1) menghitung format lama (1 baris = N hari) & baru (1 baris = 1 hari).
         $terpakai = (int) Absensi::where('id_karyawan', $id)
             ->where('id_jenis_pekerjaan', 17)
             ->whereBetween('tanggal', [date('Y') . '-01-01', date('Y') . '-12-31'])
-            ->sum('jumlah_hari');
+            ->selectRaw('COALESCE(SUM(COALESCE(jumlah_hari,1)),0) as total')
+            ->value('total');
         $sisaJatah = max(0, 12 - $terpakai);
 
         // Riwayat per bulan (filter: ?bulan=..&tahun=..)
@@ -129,16 +131,51 @@ class KaryawanAbsenController extends Controller
     {
         $request->validate([
             'jenis_cuti' => 'required|in:12,17',
-            'tanggal_cuti' => 'required|array|min:1',
-            'tanggal_cuti.*' => 'required|date',
+            'tanggal_cuti' => 'nullable|array',
+            'tanggal_cuti.*' => 'nullable|date',
+            'tanggal_mulai' => 'nullable|date',
+            'tanggal_sampai' => 'nullable|date',
             'ket' => 'nullable|string|max:255',
         ]);
 
         $id = session('absen_karyawan.id');
         $jenis_cuti = (int) $request->jenis_cuti;
 
-        $tanggal = array_values(array_unique($request->tanggal_cuti));
+        // Gabungkan: tanggal terpisah (tanggal_cuti[]) + rentang mulai-sampai.
+        $tanggal = array_values(array_filter($request->tanggal_cuti ?? []));
+
+        if ($request->tanggal_mulai) {
+            $mulai = new \DateTime($request->tanggal_mulai);
+            $sampai = new \DateTime($request->tanggal_sampai ?: $request->tanggal_mulai);
+            if ($request->tanggal_sampai && $request->tanggal_sampai < $request->tanggal_mulai) {
+                return redirect()->route('absen.index', ['tab' => 'cuti'])
+                    ->with('error', 'Tanggal sampai tidak boleh sebelum tanggal mulai.');
+            }
+            while ($mulai <= $sampai) {
+                $tanggal[] = $mulai->format('Y-m-d');
+                $mulai->modify('+1 day');
+            }
+        }
+
+        $tanggal = array_values(array_unique($tanggal));
         sort($tanggal);
+
+        if (empty($tanggal)) {
+            return redirect()->route('absen.index', ['tab' => 'cuti'])
+                ->with('error', 'Pilih minimal satu tanggal cuti.');
+        }
+
+        // Tanggal yang sudah terisi absen lain (harian/lembur/JGM/cuti jenis lain) = bentrok, tolak.
+        $bentrok = Absensi::where('id_karyawan', $id)
+            ->whereIn('tanggal', $tanggal)
+            ->where('id_jenis_pekerjaan', '!=', $jenis_cuti)
+            ->pluck('tanggal')->unique()->values()->all();
+
+        if (! empty($bentrok)) {
+            return redirect()->route('absen.index', ['tab' => 'cuti'])
+                ->with('error',
+                    'Tidak bisa cuti: tanggal ' . implode(', ', $bentrok) . ' sudah ada absen lain. Pilih tanggal lain.');
+        }
 
         // Buang tanggal yang sudah tercatat untuk karyawan + jenis yang sama
         $sudahAda = Absensi::where('id_karyawan', $id)
@@ -148,35 +185,40 @@ class KaryawanAbsenController extends Controller
         $baru = array_values(array_diff($tanggal, $sudahAda));
 
         if (empty($baru)) {
-            return back()->with('error', 'Semua tanggal cuti ini sudah tercatat.');
+            return redirect()->route('absen.index', ['tab' => 'cuti'])
+                ->with('error', 'Semua tanggal cuti ini sudah tercatat.');
         }
 
         $jumlah_hari = count($baru);
-        $ket = trim(($request->ket ?? '') . ' | ' . $jumlah_hari . ' hari: ' . implode(', ', $baru));
 
-        // Cuti tahunan (17) dibayar maksimal 12 hari per tahun (Jan-Des).
-        // Kelebihan hari otomatis ditandai "TIDAK DIBAYAR" di keterangan.
+        // Sistem mengikuti data lama: setiap tanggal cuti = 1 baris (jumlah_hari = null).
+        // Cuti tahunan (17) dibayar maksimal 12 hari per tahun (Jan-Des);
+        // hari kelebihan ditandai "TIDAK DIBAYAR" pada baris tanggal tsb.
         $terpakai = (int) Absensi::where('id_karyawan', $id)
             ->where('id_jenis_pekerjaan', 17)
             ->whereBetween('tanggal', [date('Y') . '-01-01', date('Y') . '-12-31'])
-            ->sum('jumlah_hari');
+            ->selectRaw('COALESCE(SUM(COALESCE(jumlah_hari,1)),0) as total')
+            ->value('total');
         $sisa_jatah = max(0, 12 - $terpakai);
         $hari_tidak_dibayar = $jenis_cuti === 17 ? max(0, $jumlah_hari - $sisa_jatah) : 0;
-        if ($hari_tidak_dibayar > 0) {
-            $ket .= ' | ' . $hari_tidak_dibayar . ' hari TIDAK DIBAYAR (jatah cuti 12 hari habis)';
+
+        foreach ($baru as $i => $tgl) {
+            $ketRow = trim($request->ket ?? '');
+            if ($jenis_cuti === 17 && $i >= $sisa_jatah) {
+                $ketRow = trim(($ketRow ? $ketRow . ' | ' : '') . 'TIDAK DIBAYAR (jatah cuti 12 hari habis)');
+            }
+            Absensi::create([
+                'id_karyawan' => $id,
+                'id_jenis_pekerjaan' => $jenis_cuti,
+                'id_pemakai' => 1,
+                'tanggal' => $tgl,
+                'jumlah_hari' => null,
+                'ket' => $ketRow ?: null,
+                'status' => 'selesai',
+            ]);
         }
 
-        Absensi::create([
-            'id_karyawan' => $id,
-            'id_jenis_pekerjaan' => $jenis_cuti,
-            'id_pemakai' => 1,
-            'tanggal' => $baru[0],
-            'jumlah_hari' => $jumlah_hari,
-            'ket' => $ket,
-            'status' => 'selesai',
-        ]);
-
-        return redirect()->route('absen.index')->with('sukses',
+        return redirect()->route('absen.index', ['tab' => 'cuti'])->with('sukses',
             $hari_tidak_dibayar > 0
                 ? 'Cuti/Libur dicatat. Jatah habis: ' . $hari_tidak_dibayar . ' hari TIDAK DIBAYAR.'
                 : 'Cuti/Libur dicatat (' . $jumlah_hari . ' hari).');
@@ -218,6 +260,15 @@ class KaryawanAbsenController extends Controller
             return back()->with('error', 'Sudah ada absen jenis ini pada tanggal tersebut.');
         }
 
+        // Tanggal yang sudah cuti/libur tidak boleh diisi absen lagi.
+        $adaCuti = Absensi::where('id_karyawan', $id)
+            ->whereIn('id_jenis_pekerjaan', [12, 17])
+            ->where('tanggal', $request->tanggal)
+            ->exists();
+        if ($adaCuti) {
+            return back()->with('error', 'Tanggal ini sudah tercatat cuti/libur.');
+        }
+
         $namaJenis = Jenis::where('id', $jenisId)->value('jenis_pekerjaan');
         $fotoPath = $this->simpanFoto($request->file('foto'), 'masuk', $namaJenis);
 
@@ -242,8 +293,9 @@ class KaryawanAbsenController extends Controller
 
             $data['jam_masuk'] = $request->tanggal . ' ' . $jamMulai . ':00';
 
-            // simpan jam selesai manual di ket bila tidak diisi nanti saat selesai
-            $data['ket'] = trim(($request->ket ? $request->ket . ' | ' : '') . 'Mulai ' . $jamMulai . ' - Selesai ' . $jamSelesai);
+            // Keterangan diisi sendiri oleh karyawan; jam lembur tersimpan
+            // di kolom jam_masuk / jam_selesai (bukan di ket).
+            $data['ket'] = $request->ket;
 
             // tag agar saat tombol selesai tahu jam selesai manual
             $data['jam_selesai'] = $request->tanggal . ' ' . $jamSelesai . ':00';
@@ -263,6 +315,7 @@ class KaryawanAbsenController extends Controller
             'id_absen' => 'required|integer',
             'foto' => 'required|image|mimes:jpeg,jpg,png|max:5120',
             'foto_lembur' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
+            'ket_lembur' => 'nullable|string|max:255',
         ]);
 
         $id = session('absen_karyawan.id');
@@ -311,7 +364,7 @@ class KaryawanAbsenController extends Controller
                 'id_jenis_pekerjaan' => 8,
                 'id_pemakai' => $absen->id_pemakai ?? 1,
                 'tanggal' => $absen->tanggal,
-                'ket' => 'Lembur | Mulai ' . $wita->format('H:i') . ' - Selesai ' . $jamKlaim,
+                'ket' => $request->ket_lembur,
                 'status' => 'selesai',
                 'jam_masuk' => $wita->format('Y-m-d H:i:s'),
                 'jam_selesai' => $absen->tanggal . ' ' . $jamKlaim . ':00',

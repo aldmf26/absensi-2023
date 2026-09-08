@@ -230,7 +230,8 @@ class AbsenKaryawanTest extends TestCase
         $this->assertNotNull($lembur);
         $this->assertEquals('selesai', $lembur->status);
         $this->assertEquals('21:30', \Carbon\Carbon::parse($lembur->jam_selesai)->format('H:i'));
-        $this->assertStringContainsString('Lembur', $lembur->ket);
+        // keterangan diisi sendiri oleh karyawan; tanpa isian -> kosong
+        $this->assertNull($lembur->ket);
         $this->assertNotNull($lembur->foto_selesai);
         // total baris = 2 (harian + lembur) -> tidak digabung
         $this->assertEquals(2, Absensi::where('id_karyawan', $kar->id_karyawan)->count());
@@ -313,7 +314,7 @@ class AbsenKaryawanTest extends TestCase
             'ket' => 'acara keluarga',
         ]);
 
-        $res->assertRedirect('/absen');
+        $res->assertRedirect('/absen?tab=cuti');
         $res->assertSessionHas('sukses');
 
         $this->assertDatabaseHas('absensi', [
@@ -321,10 +322,13 @@ class AbsenKaryawanTest extends TestCase
             'id_jenis_pekerjaan' => 17,
             'tanggal' => '2026-10-05',
             'status' => 'selesai',
-            'jumlah_hari' => 2,
+            'jumlah_hari' => null,
         ]);
-        $cuti = Absensi::where('id_karyawan', $kar->id_karyawan)->first();
-        $this->assertStringContainsString('2 hari: 2026-10-05, 2026-10-06', $cuti->ket);
+        $this->assertEquals(2, Absensi::where('id_karyawan', $kar->id_karyawan)->count());
+        $this->assertStringContainsString(
+            'acara keluarga',
+            Absensi::where('id_karyawan', $kar->id_karyawan)->where('tanggal', '2026-10-06')->first()->ket
+        );
     }
 
     public function test_cuti_tanggal_doppel_tidak_jadi_duplicate()
@@ -349,14 +353,14 @@ class AbsenKaryawanTest extends TestCase
             'tanggal_cuti' => ['2026-10-05', '2026-10-06', '2026-10-07'],
         ]);
         $res->assertSessionHas('sukses');
-        $this->assertEquals(2, Absensi::where('id_karyawan', $kar->id_karyawan)->count());
+        $this->assertEquals(3, Absensi::where('id_karyawan', $kar->id_karyawan)->count());
         $this->assertDatabaseHas('absensi', [
             'id_karyawan' => $kar->id_karyawan,
             'id_jenis_pekerjaan' => 17,
-            'tanggal' => '2026-10-06',
-            'jumlah_hari' => 2,
+            'tanggal' => '2026-10-07',
+            'jumlah_hari' => null,
         ]);
-        $this->assertStringContainsString('2 hari: 2026-10-06, 2026-10-07', Absensi::where('id_karyawan', $kar->id_karyawan)->get()->last()->ket);
+        $this->assertNull(Absensi::where('id_karyawan', $kar->id_karyawan)->where('tanggal', '2026-10-06')->first()->ket);
     }
 
     public function test_cuti_melebihi_jatah_ditandai_tidak_dibayar()
@@ -381,9 +385,166 @@ class AbsenKaryawanTest extends TestCase
         ]);
         $res->assertSessionHas('sukses');
 
-        $cuti = Absensi::where('id_karyawan', $kar->id_karyawan)->first();
-        $this->assertEquals(13, $cuti->jumlah_hari);
-        $this->assertStringContainsString('1 hari TIDAK DIBAYAR', $cuti->ket);
+        $this->assertEquals(13, Absensi::where('id_karyawan', $kar->id_karyawan)->count());
+        $this->assertNull(Absensi::where('id_karyawan', $kar->id_karyawan)->where('tanggal', '2026-11-01')->first()->ket);
+        $this->assertStringContainsString(
+            'TIDAK DIBAYAR',
+            Absensi::where('id_karyawan', $kar->id_karyawan)->where('tanggal', '2026-11-13')->first()->ket
+        );
+    }
+
+    public function test_cuti_ditolak_jika_tanggal_sudah_ada_absen()
+    {
+        // jenis seeding agar dropdown absen normal tersedia
+        Jenis::forceCreate(['id' => 9, 'jenis_pekerjaan' => 'Absen Harian', 'keterangan' => 'x']);
+
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        // absen harian hari ini
+        $this->post('/absen', [
+            'id_jenis' => 9,
+            'tanggal' => now()->toDateString(),
+            'foto' => UploadedFile::fake()->image('masuk.jpg'),
+        ]);
+
+        // cuti di tanggal yang sama harus ditolak
+        $res = $this->post('/absen/cuti', [
+            'jenis_cuti' => 17,
+            'tanggal_cuti' => [now('Asia/Makassar')->toDateString()],
+        ]);
+        $res->assertSessionHas('error');
+        $this->assertEquals(0, Absensi::where('id_karyawan', $kar->id_karyawan)->where('id_jenis_pekerjaan', 17)->count());
+    }
+
+    public function test_cuti_boleh_untuk_tanggal_masa_depan()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        $masaDepan = now('Asia/Makassar')->addDays(20)->toDateString();
+
+        $res = $this->post('/absen/cuti', [
+            'jenis_cuti' => 17,
+            'tanggal_cuti' => [$masaDepan],
+        ]);
+        $res->assertRedirect('/absen?tab=cuti');
+        $res->assertSessionHas('sukses');
+        $this->assertDatabaseHas('absensi', [
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 17,
+            'tanggal' => $masaDepan,
+        ]);
+    }
+
+    public function test_absen_ditolak_jika_tanggal_sudah_cuti()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        // cuti hari ini dulu
+        $this->post('/absen/cuti', [
+            'jenis_cuti' => 17,
+            'tanggal_cuti' => [now('Asia/Makassar')->toDateString()],
+        ]);
+
+        // absen harian di tanggal yang sudah cuti harus ditolak
+        $res = $this->post('/absen', [
+            'id_jenis' => 9,
+            'tanggal' => now('Asia/Makassar')->toDateString(),
+            'foto' => UploadedFile::fake()->image('masuk.jpg'),
+        ]);
+        $res->assertSessionHas('error');
+        $this->assertEquals(0, Absensi::where('id_karyawan', $kar->id_karyawan)->where('id_jenis_pekerjaan', 9)->count());
+    }
+
+    public function test_cuti_rentang_mulai_sampai()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        // rentang 21-25 -> 5 baris, termasuk kiriman baris tanggal terpisah kosong
+        $res = $this->post('/absen/cuti', [
+            'jenis_cuti' => 17,
+            'tanggal_mulai' => '2026-10-21',
+            'tanggal_sampai' => '2026-10-25',
+            'tanggal_cuti' => ['', ''],
+        ]);
+        $res->assertRedirect('/absen?tab=cuti');
+        $res->assertSessionHas('sukses');
+        $this->assertEquals(5, Absensi::where('id_karyawan', $kar->id_karyawan)->count());
+        $this->assertDatabaseHas('absensi', [
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 17,
+            'tanggal' => '2026-10-21',
+        ]);
+        $this->assertDatabaseHas('absensi', [
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 17,
+            'tanggal' => '2026-10-25',
+        ]);
+    }
+
+    public function test_sisa_jatah_menghitung_format_lama_dan_baru()
+    {
+        Jenis::forceCreate(['id' => 9, 'jenis_pekerjaan' => 'Absen Harian', 'keterangan' => 'x']);
+
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        $tahun = now('Asia/Makassar')->year;
+
+        // 1 baris format lama = 5 hari cuti
+        Absensi::create([
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 17,
+            'id_pemakai' => 1,
+            'tanggal' => "$tahun-01-05",
+            'jumlah_hari' => 5,
+            'status' => 'selesai',
+        ]);
+        // 1 baris format baru = 1 hari cutoff
+        Absensi::create([
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 17,
+            'id_pemakai' => 1,
+            'tanggal' => "$tahun-02-10",
+            'jumlah_hari' => null,
+            'status' => 'selesai',
+        ]);
+
+        // total terpakai 6 -> sisa jatah 6, bukan 12-2=10 (kalau hanya count baris)
+        $this->get('/absen')->assertSee('Sisa Cuti Tahunan: 6 hari');
     }
 
     public function test_riwayat_per_bulan_dan_ringkasan()

@@ -58,6 +58,17 @@
             letter-spacing: .4px; margin: 16px 0 4px; padding-bottom: 5px;
             border-bottom: 1px solid #eee;
         }
+        .cuti-jenis { display: flex; gap: 8px; }
+        .jenis-btn {
+            flex: 1; border: 2px solid #ddd; background: #fff; color: #555;
+            border-radius: 12px; padding: 12px 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+        }
+        .jenis-btn.active { border-color: #1a2980; background: #eef2ff; color: #1a2980; }
+        .in-cuti { width: 100%; padding: 14px; font-size: 16px; border: 2px solid #ddd; border-radius: 12px; }
+        .hint { color: #aaa; font-size: 12px; font-weight: 400; }
+        .info-cuti { font-size: 14px; font-weight: 700; color: #1a2980; margin-top: 6px; min-height: 20px; }
+        .cuti-lanjutan { margin-top: 14px; }
+        .cuti-lanjutan summary { cursor: pointer; color: #555; font-size: 13px; font-weight: 700; padding: 6px 0; }
         .item {
             display: flex; align-items: center; justify-content: space-between; gap: 10px;
             padding: 12px 0; border-top: 1px solid #f0f0f0;
@@ -120,12 +131,20 @@
 </div>
 
 <div class="container">
-    @php $awalTab = (request()->has('bulan') || request()->has('tahun')) ? 'riwayat' : 'tambah'; @endphp
+    @php
+        $awalTab = request('tab', '');
+        if (! in_array($awalTab, ['tambah', 'cuti', 'riwayat'], true)) {
+            $awalTab = (request()->has('bulan') || request()->has('tahun')) ? 'riwayat' : 'tambah';
+        }
+    @endphp
     @if(session('error'))
-        <div class="alert alert-error">{{ session('error') }}</div>
+        <div class="alert alert-error">⚠️ {{ session('error') }}</div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-error">⚠️ {{ $errors->first() }}</div>
     @endif
     @if(session('sukses'))
-        <div class="alert alert-sukses">{{ session('sukses') }}</div>
+        <div class="alert alert-sukses">✅ {{ session('sukses') }}</div>
     @endif
 
     {{-- ===== STATUS HARI INI ===== --}}
@@ -151,6 +170,7 @@
                     <input type="hidden" name="id_absen" value="{{ $a->id_absen }}">
                     <input type="hidden" name="lembur" value="0">
                     <input type="hidden" name="jam_lembur" value="">
+                    <input type="hidden" name="ket_lembur" value="">
                     <div class="photo-box" id="selesai-box-{{ $a->id_absen }}">
                         <div class="photo-placeholder">
                             <i class="fas fa-camera fa-2x"></i>
@@ -246,19 +266,32 @@
             </h3>
             <form id="form-cuti" method="POST" action="{{ route('absen.cuti') }}">
                 @csrf
+                <input type="hidden" name="jenis_cuti" id="jenisCutiValue" value="17">
+
                 <label>Jenis</label>
-                <select name="jenis_cuti" id="jenisCuti" style="width:100%;padding:14px;font-size:16px;border:2px solid #ddd;border-radius:12px;">
-                    <option value="17">Cuti Tahunan (dibayar, jatah 12 hari/tahun)</option>
-                    <option value="12">Libur Pulang Luar Kota</option>
-                </select>
-                <label>Tanggal</label>
-                <div id="daftar-tanggal-cuti">
-                    <div style="display:flex;gap:8px;margin-bottom:8px;">
-                        <input type="date" name="tanggal_cuti[]" class="tgl-cuti" style="flex:1;">
-                        <button type="button" class="btn btn-sm" onclick="hapusTanggalCuti(this)">✕</button>
-                    </div>
+                <div class="cuti-jenis" id="jenisCuti">
+                    <button type="button" class="jenis-btn active" data-nilai="17">🏖️ Cuti Tahunan</button>
+                    <button type="button" class="jenis-btn" data-nilai="12">🛫 Pulang Luar Kota</button>
                 </div>
-                <button type="button" class="btn btn-sm" id="btn-tambah-tgl" style="width:100%;">+ TAMBAH TANGGAL</button>
+
+                <label>Dari Tanggal s/d Sampai <span class="hint">(Sampai opsional — lebih dari 1 hari)</span></label>
+                <div style="display:flex;gap:8px;">
+                    <input type="date" name="tanggal_mulai" id="tgl-mulai" class="in-cuti" value="{{ \Carbon\Carbon::now('Asia/Makassar')->toDateString() }}">
+                    <input type="date" name="tanggal_sampai" id="tgl-sampai" class="in-cuti">
+                </div>
+                <div id="info-cuti" class="info-cuti"></div>
+
+                <details class="cuti-lanjutan" id="lanjutan">
+                    <summary>Khusus tanggal terpisah (tidak berurutan)</summary>
+                    <div id="daftar-tanggal-cuti">
+                        <div style="display:flex;gap:8px;margin-bottom:8px;">
+                            <input type="date" name="tanggal_cuti[]" class="tgl-cuti" style="flex:1;">
+                            <button type="button" class="btn btn-sm" onclick="hapusTanggalCuti(this);hitungHariCuti()">✕</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm" id="btn-tambah-tgl" style="width:100%;">+ TAMBAH TANGGAL</button>
+                </details>
+
                 <label>Keterangan (opsional)</label>
                 <input type="text" name="ket" maxlength="255" placeholder="contoh: acara keluarga">
                 <button type="submit" class="btn btn-blue" style="margin-top:18px;">SIMPAN CUTI</button>
@@ -345,6 +378,10 @@
                 <input type="file" name="foto_lembur" id="file-lembur-selesai" accept="image/*" class="hidden">
             </div>
         </div>
+        <div id="lembur-ket-box" class="hidden" style="margin-bottom:12px;">
+            <label for="lembur-ket" style="font-size:13px;">Keterangan (opsional)</label>
+            <input type="text" id="lembur-ket" maxlength="255" placeholder="contoh: lembur proyek" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;">
+        </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
             <button type="button" id="lembur-no" class="btn btn-ghost">TIDAK</button>
             <button type="button" id="lembur-ya" class="btn btn-yellow">YA, LEMBUR</button>
@@ -428,6 +465,8 @@
         document.getElementById('lembur-dialog').classList.remove('show');
         document.getElementById('lembur-jam-box').classList.add('hidden');
         document.getElementById('lembur-foto-box').classList.add('hidden');
+        document.getElementById('lembur-ket-box').classList.add('hidden');
+        document.getElementById('lembur-ket').value = '';
         const limg = document.getElementById('img-lembur-selesai');
         if (limg) { limg.src = ''; limg.classList.add('hidden'); }
         const lbox = document.getElementById('lembur-photo-box');
@@ -461,6 +500,7 @@
         const f = pendingForm;
         f.querySelector('input[name="lembur"]').value = '0';
         f.querySelector('input[name="jam_lembur"]').value = '';
+        f.querySelector('input[name="ket_lembur"]').value = '';
         tutupLemburDialog();
         kirimSelesai(f);
     });
@@ -470,6 +510,7 @@
             lemburStep = 1;
             document.getElementById('lembur-jam-box').classList.remove('hidden');
             document.getElementById('lembur-foto-box').classList.remove('hidden');
+            document.getElementById('lembur-ket-box').classList.remove('hidden');
             document.getElementById('lembur-ya').textContent = '✓ SIMPAN LEMBUR';
             return;
         }
@@ -481,6 +522,7 @@
         fileLembur = lf.files[0];
         f.querySelector('input[name="lembur"]').value = '1';
         f.querySelector('input[name="jam_lembur"]').value = jam;
+        f.querySelector('input[name="ket_lembur"]').value = document.getElementById('lembur-ket').value.trim();
         tutupLemburDialog();
         kirimSelesai(f);
     });
@@ -517,11 +559,61 @@
     });
 
     // Cuti / Libur mandiri
+    const sisaJatah = {{ $sisaJatah }};
+    let jenisCuti = 17;
+
+    function ymd(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function tanggalCutiTerpilih() {
+        const hasil = [];
+        const mulai = document.getElementById('tgl-mulai').value;
+        const sampai = document.getElementById('tgl-sampai').value;
+        if (mulai) {
+            hasil.push(mulai);
+            if (sampai && sampai >= mulai) {
+                const d = new Date(mulai + 'T00:00:00');
+                const end = new Date(sampai + 'T00:00:00');
+                while (d <= end) { hasil.push(ymd(d)); d.setDate(d.getDate() + 1); }
+            }
+        }
+        document.querySelectorAll('#daftar-tanggal-cuti .tgl-cuti').forEach(i => { if (i.value) hasil.push(i.value); });
+        return [...new Set(hasil)];
+    }
+
+    function hitungHariCuti() {
+        const n = tanggalCutiTerpilih().length;
+        const info = document.getElementById('info-cuti');
+        if (!n) { info.textContent = ''; return; }
+        let teks = 'Total: ' + n + ' hari';
+        if (jenisCuti === 17) {
+            const sisa = sisaJatah - n;
+            teks += sisa >= 0
+                ? ' · sisa jatah ' + sisa + ' hari'
+                : ' · <span style="color:#b00020;">kelebihan ' + (-sisa) + ' hari TIDAK DIBAYAR</span>';
+        }
+        info.innerHTML = teks;
+    }
+
+    document.querySelectorAll('#jenisCuti .jenis-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            document.querySelectorAll('#jenisCuti .jenis-btn').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            jenisCuti = parseInt(b.dataset.nilai, 10);
+            document.getElementById('jenisCutiValue').value = jenisCuti;
+            hitungHariCuti();
+        });
+    });
+    document.getElementById('tgl-mulai').addEventListener('change', hitungHariCuti);
+    document.getElementById('tgl-sampai').addEventListener('change', hitungHariCuti);
+    document.querySelectorAll('#daftar-tanggal-cuti .tgl-cuti').forEach(i => i.addEventListener('change', hitungHariCuti));
+
     function hapusTanggalCuti(btn) {
         const row = btn.closest('div');
         const list = document.getElementById('daftar-tanggal-cuti');
-        if (list.children.length <= 1) { row.querySelector('.tgl-cuti').value = ''; return; }
-        row.remove();
+        if (list.children.length <= 1) { row.querySelector('.tgl-cuti').value = ''; } else { row.remove(); }
+        hitungHariCuti();
     }
     document.getElementById('btn-tambah-tgl').addEventListener('click', () => {
         const list = document.getElementById('daftar-tanggal-cuti');
@@ -530,11 +622,11 @@
         row.innerHTML = '<input type="date" name="tanggal_cuti[]" class="tgl-cuti" style="flex:1;">'
             + '<button type="button" class="btn btn-sm" onclick="hapusTanggalCuti(this)">✕</button>';
         list.appendChild(row);
+        row.querySelector('.tgl-cuti').addEventListener('change', hitungHariCuti);
     });
-    document.getElementById('form-cuti').addEventListener('submit', function(e) {
-        let ada = false;
-        document.querySelectorAll('#daftar-tanggal-cuti .tgl-cuti').forEach(i => { if (i.value) ada = true; });
-        if (!ada) { alert('Pilih minimal satu tanggal.'); e.preventDefault(); return; }
+    hitungHariCuti();
+
+    document.getElementById('form-cuti').addEventListener('submit', function() {
         tampilkanLoading('Menyimpan...');
     });
 

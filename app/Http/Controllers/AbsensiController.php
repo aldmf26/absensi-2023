@@ -45,8 +45,9 @@ class AbsensiController extends Controller
             $whereJenis = $filterJenis > 0 ? " AND a.id_jenis_pekerjaan = $filterJenis" : '';
 
             $karyawan = Karyawan::where('id_departemen', '1')->get();
-            $tahun = date('Y');
-            $pakaiCuti = Absensi::selectRaw('id_karyawan, COALESCE(SUM(jumlah_hari),0) as total')
+$tahun = date('Y');
+        // COALESCE(jumlah_hari,1): format lama (1 baris = N hari) & baru (1 baris = 1 hari)
+        $pakaiCuti = Absensi::selectRaw('id_karyawan, COALESCE(SUM(COALESCE(jumlah_hari,1)),0) as total')
                 ->where('id_jenis_pekerjaan', 17)
                 ->whereBetween('tanggal', ["$tahun-01-01", "$tahun-12-31"])
                 ->groupBy('id_karyawan')
@@ -132,29 +133,31 @@ class AbsensiController extends Controller
         sort($tanggal);
         $jumlah_hari = count($tanggal);
 
-        $ket = trim(($data['ket'] ?? '') . ' | ' . $jumlah_hari . ' hari: ' . implode(', ', $tanggal));
-
         $jenis_cuti = (int) $data['jenis_cuti'];
         $id_karyawan = (int) $data['id_karyawan'];
 
-        // Cuti tahunan (17) dibayar maksimal 12 hari per tahun (Jan-Des).
-        // Kelebihan hari otomatis ditandai "TIDAK DIBAYAR" di keterangan.
+        // Mengikuti data lama: setiap tanggal cuti = 1 baris (jumlah_hari = null).
+        // Cuti tahunan (17) dibayar maksimal 12 hari per tahun (Jan-Des);
+        // hari kelebihan ditandai "TIDAK DIBAYAR" pada baris tanggal tsb.
         $terpakai = $this->totalCutiTahun($id_karyawan);
         $sisa_jatah = max(0, 12 - $terpakai);
         $hari_tidak_dibayar = $jenis_cuti === 17 ? max(0, $jumlah_hari - $sisa_jatah) : 0;
-        if ($hari_tidak_dibayar > 0) {
-            $ket .= ' | ' . $hari_tidak_dibayar . ' hari TIDAK DIBAYAR (jatah cuti 12 hari habis)';
-        }
 
-        Absensi::create([
-            'id_karyawan' => $id_karyawan,
-            'id_jenis_pekerjaan' => $jenis_cuti,
-            'id_pemakai' => 1,
-            'tanggal' => $tanggal[0],
-            'jumlah_hari' => $jumlah_hari,
-            'ket' => $ket,
-            'status' => 'selesai',
-        ]);
+        foreach ($tanggal as $i => $tgl) {
+            $ketRow = trim($data['ket'] ?? '');
+            if ($jenis_cuti === 17 && $i >= $sisa_jatah) {
+                $ketRow = trim(($ketRow ? $ketRow . ' | ' : '') . 'TIDAK DIBAYAR (jatah cuti 12 hari habis)');
+            }
+            Absensi::create([
+                'id_karyawan' => $id_karyawan,
+                'id_jenis_pekerjaan' => $jenis_cuti,
+                'id_pemakai' => 1,
+                'tanggal' => $tgl,
+                'jumlah_hari' => null,
+                'ket' => $ketRow ?: null,
+                'status' => 'selesai',
+            ]);
+        }
 
         return redirect()->route('absensi', ['id_departemen' => 1])
             ->with('info', $hari_tidak_dibayar > 0
@@ -168,7 +171,8 @@ class AbsensiController extends Controller
         return (int) Absensi::where('id_karyawan', $id_karyawan)
             ->where('id_jenis_pekerjaan', 17)
             ->whereBetween('tanggal', ["{$tahun}-01-01", "{$tahun}-12-31"])
-            ->sum('jumlah_hari');
+            ->selectRaw('COALESCE(SUM(COALESCE(jumlah_hari,1)),0) as total')
+            ->value('total');
     }
 
     public function editAbsensi(Request $request)
