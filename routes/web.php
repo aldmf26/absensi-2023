@@ -81,7 +81,8 @@ Route::controller(\App\Http\Controllers\KaryawanAbsenController::class)->group(f
             Route::post('/delete-absensi',  'deleteAbsensi')->name('deleteAbsensi');
             Route::get('/excel',  'excel')->name('excel');
             Route::get('/exportPertanggal',  'exportPertanggal')->name('exportPertanggal');
-            Route::get('/hapusPertanggal',  'hapusPertanggal')->name('hapusPertanggal');
+            Route::post('/hapusPertanggal',  'hapusPertanggal')->name('hapusPertanggal');
+            Route::get('/backupDatabase',  'backupDatabase')->name('backupDatabase');
         });
 
     Route::controller(AbsensiRestoController::class)

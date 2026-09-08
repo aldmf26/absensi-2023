@@ -11,6 +11,7 @@ use App\Models\Pemakai;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\AbsensiExport;
 use App\Exports\AbsensiPertanggalExport;
@@ -225,10 +226,77 @@ class AbsensiController extends Controller
 
     public function hapusPertanggal(Request $request)
     {
+        $request->validate([
+            'dari' => 'required|date',
+            'sampai' => 'required|date',
+            'password' => 'required',
+        ]);
+
+        if (! Hash::check($request->password, Auth::user()->password)) {
+            return back()->withInput()->with('error', 'Kata sandi salah. Data tidak dihapus.');
+        }
+
         $dari = $request->dari;
         $sampai = $request->sampai;
 
-        Absensi::whereBetween('absensi.tanggal', [$dari, $sampai])->delete();
-        return redirect()->route('absensi', ['id_departemen' => 1, 'tglDari' => $dari, 'tglSampai' => $sampai])->with('error', 'Berhasil hapus absen ' . $dari . ' - ' . $sampai);
+        $query = Absensi::whereBetween('absensi.tanggal', [$dari, $sampai]);
+
+        // Hanya hapus yang sedang difilter (jenis). Ikut filter jenis di toolbar.
+        $id_jenis = (int) $request->id_jenis;
+        if ($id_jenis > 0) {
+            $query->where('id_jenis_pekerjaan', $id_jenis);
+        }
+
+        // Hapus file foto dulu (hindari file yatim di storage)
+        foreach (['foto_masuk', 'foto_selesai'] as $kolom) {
+            $foto = (clone $query)->whereNotNull($kolom)->pluck($kolom);
+            $foto = $foto->map(fn ($p) => str_replace('storage/', '', $p));
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($foto->all());
+        }
+
+        $jumlah = $query->count();
+        $query->delete();
+
+        return redirect()->route('absensi', [
+            'id_departemen' => 1,
+            'tglDari' => $dari,
+            'tglSampai' => $sampai,
+            'id_jenis' => $id_jenis > 0 ? $id_jenis : null,
+        ])->with('error', 'Berhasil hapus ' . $jumlah . ' data (' . $dari . ' - ' . $sampai . ').');
+    }
+
+    public function backupDatabase()
+    {
+        $tables = array_values(array_map(fn ($t) => array_values((array) $t)[0], DB::select('SHOW TABLES')));
+
+        $sql = "-- Backup Database\n-- Tanggal: " . date('Y-m-d H:i:s') . "\nSET FOREIGN_KEY_CHECKS=0;\n\n";
+
+        foreach ($tables as $table) {
+            $create = DB::select("SHOW CREATE TABLE `$table`");
+            $sql .= "DROP TABLE IF EXISTS `$table`;\n\n";
+            $sql .= array_values((array) $create[0])[1] . ";\n\n";
+
+            $rows = DB::table($table)->get();
+            foreach ($rows->chunk(500) as $chunk) {
+                foreach ($chunk as $row) {
+                    $cols = array_keys((array) $row);
+                    $vals = array_values((array) $row);
+                    $escaped = array_map(function ($v) {
+                        if ($v === null) return 'NULL';
+                        $v = str_replace(["\x00", "\n", "\r", "\x1a"], ['\\0', '\\n', '\\r', '\\Z'], (string) $v);
+                        return "'" . str_replace("'", "''", $v) . "'";
+                    }, $vals);
+                    $sql .= "INSERT INTO `$table` (`" . implode('`, `', $cols) . "`) VALUES (" . implode(', ', $escaped) . ");\n";
+                }
+            }
+            $sql .= "\n";
+        }
+
+        $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
+
+        $nama = 'backup_' . date('Ymd_His') . '.sql';
+        return response($sql)
+            ->header('Content-Type', 'application/sql')
+            ->header('Content-Disposition', 'attachment; filename="' . $nama . '"');
     }
 }

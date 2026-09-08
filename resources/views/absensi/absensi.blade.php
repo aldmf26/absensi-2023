@@ -97,6 +97,9 @@
                             <a href="{{ route('exportPertanggal', ['dari' => $dari, 'sampai' => $sampai]) }}" class="btn btn-success mb-3"><i class="fas fa-file-excel"></i>
                                 Export Pertanggal
                             </a>
+                            <a href="{{ route('backupDatabase') }}" class="btn btn-warning mb-3"><i class="fas fa-database"></i>
+                                Backup Database
+                            </a>
                             <button type="button" class="btn btn-danger mb-3" data-toggle="modal"
                                 data-target="#hapusPertanggal"><i class="fa fa-trash"></i>
                                 Hapus Pertanggal
@@ -254,7 +257,9 @@
                         </form>
                         {{-- end export pertanggal --}}
                         {{-- modal hapus pertanggal --}}
-                        <form action="{{ route('hapusPertanggal') }}">
+                        <form action="{{ route('hapusPertanggal') }}" method="post"
+                            onsubmit="return confirm('Hapus permanen? Data yang dihapus TIDAK bisa dikembalikan.');">
+                            @csrf
                             <div class="modal fade" id="hapusPertanggal" tabindex="-1" role="dialog"
                                 aria-labelledby="exampleModalLabel" aria-hidden="true">
                                 <div class="modal-dialog modal-md-6" role="document">
@@ -267,22 +272,38 @@
                                             </button>
                                         </div>
                                         <div class="modal-body">
+                                            <div class="alert alert-danger">
+                                                <b>Langkah 1:</b> <a href="{{ route('backupDatabase') }}" class="alert-link" target="_blank"><i class="fas fa-database"></i> Download Backup Database</a> dulu sebelum hapus.
+                                            </div>
                                             <div class="row">
-
                                                 <div class="col-md-6">
                                                     <label for="">Dari</label>
-                                                    <input required type="date" name="dari"
+                                                    <input required type="date" name="dari" value="{{ $dari }}"
                                                         class="form-control mb-3">
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label for="">Sampai</label>
-                                                    <input required type="date" name="sampai"
+                                                    <input required type="date" name="sampai" value="{{ $sampai }}"
                                                         class="form-control mb-3">
                                                 </div>
                                             </div>
-                                            <div class="modal-footer">
-                                                <input type="submit" name="simpan" value="Simpan" id="tombol"
-                                                    class="btn btn-primary mt-3">
+                                            <div class="form-group">
+                                                <label>Jenis Pekerjaan</label>
+                                                <select class="form-control mb-3" name="id_jenis" id="hapusIdJenis">
+                                                    <option value="">Semua Jenis Pekerjaan</option>
+                                                    @foreach ($jenis_pekerjaan as $j)
+                                                        <option value="{{ $j->id }}" @if (isset($filterJenis) && (int) $filterJenis === (int) $j->id) selected @endif>{{ $j->jenis_pekerjaan }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Kata Sandi Admin</label>
+                                                <input required type="password" name="password"
+                                                    class="form-control mb-3" placeholder="masukkan kata sandi admin" autocomplete="off">
+                                            </div>
+                                            <div class="modal-footer" style="padding-left:0;padding-right:0;">
+                                                <input type="submit" name="simpan" value="Hapus Data" id="tombol"
+                                                    class="btn btn-danger mt-3">
                                                 <button type="button" class="btn btn-secondary  mt-3"
                                                     data-dismiss="modal">Close</button>
                                             </div>
