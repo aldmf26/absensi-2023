@@ -71,6 +71,9 @@ class KaryawanAbsenController extends Controller
             ->with('jenis')
             ->get();
 
+        // Hari ini ada kuota cuti/libur (jangan ajak user "mulai absen")
+        $adaCutiHariIni = $selesaiHariIni->contains(fn($a) => in_array((int) $a->id_jenis_pekerjaan, [12, 17], true));
+
         // Jenis yang dipakai untuk foto mandiri (sembunyikan CUTI & LIBUR PULANG)
         $sembunyi = [12, 17];
         $jenis = Jenis::whereNotIn('id', $sembunyi)->get();
@@ -124,6 +127,7 @@ class KaryawanAbsenController extends Controller
             'tahun' => $tahun,
             'prev' => $prev,
             'next' => $next,
+            'adaCutiHariIni' => $adaCutiHariIni,
         ]);
     }
 
@@ -148,8 +152,9 @@ class KaryawanAbsenController extends Controller
             $mulai = new \DateTime($request->tanggal_mulai);
             $sampai = new \DateTime($request->tanggal_sampai ?: $request->tanggal_mulai);
             if ($request->tanggal_sampai && $request->tanggal_sampai < $request->tanggal_mulai) {
-                return redirect()->route('absen.index', ['tab' => 'cuti'])
-                    ->with('error', 'Tanggal sampai tidak boleh sebelum tanggal mulai.');
+                return redirect()->route('absen.index')
+                    ->with('error', 'Tanggal sampai tidak boleh sebelum tanggal mulai.')
+                    ->with('tab_pilihan', 'cuti');
             }
             while ($mulai <= $sampai) {
                 $tanggal[] = $mulai->format('Y-m-d');
@@ -161,8 +166,9 @@ class KaryawanAbsenController extends Controller
         sort($tanggal);
 
         if (empty($tanggal)) {
-            return redirect()->route('absen.index', ['tab' => 'cuti'])
-                ->with('error', 'Pilih minimal satu tanggal cuti.');
+            return redirect()->route('absen.index')
+                ->with('error', 'Pilih minimal satu tanggal cuti.')
+                ->with('tab_pilihan', 'cuti');
         }
 
         // Tanggal yang sudah terisi absen lain (harian/lembur/JGM/cuti jenis lain) = bentrok, tolak.
@@ -172,9 +178,11 @@ class KaryawanAbsenController extends Controller
             ->pluck('tanggal')->unique()->values()->all();
 
         if (! empty($bentrok)) {
-            return redirect()->route('absen.index', ['tab' => 'cuti'])
+            $bentrokTampil = array_map(fn($t) => date('d-m-Y', strtotime($t)), $bentrok);
+            return redirect()->route('absen.index')
                 ->with('error',
-                    'Tidak bisa cuti: tanggal ' . implode(', ', $bentrok) . ' sudah ada absen lain. Pilih tanggal lain.');
+                    'Tidak bisa cuti: tanggal ' . implode(', ', $bentrokTampil) . ' sudah ada absen lain. Pilih tanggal lain.')
+                ->with('tab_pilihan', 'cuti');
         }
 
         // Buang tanggal yang sudah tercatat untuk karyawan + jenis yang sama
@@ -185,8 +193,9 @@ class KaryawanAbsenController extends Controller
         $baru = array_values(array_diff($tanggal, $sudahAda));
 
         if (empty($baru)) {
-            return redirect()->route('absen.index', ['tab' => 'cuti'])
-                ->with('error', 'Semua tanggal cuti ini sudah tercatat.');
+            return redirect()->route('absen.index')
+                ->with('error', 'Semua tanggal cuti ini sudah tercatat.')
+                ->with('tab_pilihan', 'cuti');
         }
 
         $jumlah_hari = count($baru);
@@ -218,10 +227,12 @@ class KaryawanAbsenController extends Controller
             ]);
         }
 
-        return redirect()->route('absen.index', ['tab' => 'cuti'])->with('sukses',
-            $hari_tidak_dibayar > 0
-                ? 'Cuti/Libur dicatat. Jatah habis: ' . $hari_tidak_dibayar . ' hari TIDAK DIBAYAR.'
-                : 'Cuti/Libur dicatat (' . $jumlah_hari . ' hari).');
+        return redirect()->route('absen.index')
+            ->with('tab_pilihan', 'cuti')
+            ->with('sukses',
+                $hari_tidak_dibayar > 0
+                    ? 'Cuti/Libur dicatat. Jatah habis: ' . $hari_tidak_dibayar . ' hari TIDAK DIBAYAR.'
+                    : 'Cuti/Libur dicatat (' . $jumlah_hari . ' hari).');
     }
 
     public function store(Request $request)

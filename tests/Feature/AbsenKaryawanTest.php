@@ -314,8 +314,9 @@ class AbsenKaryawanTest extends TestCase
             'ket' => 'acara keluarga',
         ]);
 
-        $res->assertRedirect('/absen?tab=cuti');
+        $res->assertRedirect('/absen');
         $res->assertSessionHas('sukses');
+        $res->assertSessionHas('tab_pilihan', 'cuti');
 
         $this->assertDatabaseHas('absensi', [
             'id_karyawan' => $kar->id_karyawan,
@@ -440,8 +441,9 @@ class AbsenKaryawanTest extends TestCase
             'jenis_cuti' => 17,
             'tanggal_cuti' => [$masaDepan],
         ]);
-        $res->assertRedirect('/absen?tab=cuti');
+        $res->assertRedirect('/absen');
         $res->assertSessionHas('sukses');
+        $res->assertSessionHas('tab_pilihan', 'cuti');
         $this->assertDatabaseHas('absensi', [
             'id_karyawan' => $kar->id_karyawan,
             'id_jenis_pekerjaan' => 17,
@@ -494,8 +496,9 @@ class AbsenKaryawanTest extends TestCase
             'tanggal_sampai' => '2026-10-25',
             'tanggal_cuti' => ['', ''],
         ]);
-        $res->assertRedirect('/absen?tab=cuti');
+        $res->assertRedirect('/absen');
         $res->assertSessionHas('sukses');
+        $res->assertSessionHas('tab_pilihan', 'cuti');
         $this->assertEquals(5, Absensi::where('id_karyawan', $kar->id_karyawan)->count());
         $this->assertDatabaseHas('absensi', [
             'id_karyawan' => $kar->id_karyawan,

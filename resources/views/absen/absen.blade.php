@@ -132,7 +132,7 @@
 
 <div class="container">
     @php
-        $awalTab = request('tab', '');
+        $awalTab = session('tab_pilihan', request('tab', ''));
         if (! in_array($awalTab, ['tambah', 'cuti', 'riwayat'], true)) {
             $awalTab = (request()->has('bulan') || request()->has('tahun')) ? 'riwayat' : 'tambah';
         }
@@ -151,17 +151,21 @@
     <div class="card">
         <h3>📌 Status Hari Ini</h3>
         @if($sedangBekerja->isEmpty() && $selesaiHariIni->isEmpty())
-            <div class="empty">Belum absen hari ini.</div>
-            <button type="button" class="btn btn-blue" style="width:100%;" onclick="pilihTab('tambah')">➕ MULAI ABSEN SEKARANG</button>
+            @if($adaCutiHariIni)
+                <div class="empty">🏖️ Hari ini cuti/libur. Tidak perlu absen.</div>
+            @else
+                <div class="empty">Belum absen hari ini.</div>
+                <button type="button" class="btn btn-blue" style="width:100%;" onclick="pilihTab('tambah')">➕ MULAI ABSEN SEKARANG</button>
+            @endif
         @else
             @foreach($sedangBekerja as $a)
                 <div class="item">
                     <div>
                         <div class="nama">{{ optional($a->jenis)->jenis_pekerjaan ?? 'Pekerjaan' }}</div>
-                        <div class="info">masuk {{ $a->jam_masuk ? \Carbon\Carbon::parse($a->jam_masuk)->format('H:i') : '-' }}</div>
+                        <div class="info">{{ \Carbon\Carbon::parse($a->tanggal)->format('d-m-Y') }}, masuk {{ $a->jam_masuk ? \Carbon\Carbon::parse($a->jam_masuk)->format('H:i') : '-' }}</div>
                         <div><span class="badge badge-bekerja">SEDANG BEKERJA</span></div>
                     </div>
-                    <button type="button" class="btn btn-yellow btn-selesai" data-id="{{ $a->id_absen }}">SELESAIKAN</button>
+                    <button type="button" class="btn btn-yellow btn-selesai" data-id="{{ $a->id_absen }}">SELESAI BEKERJA (PULANG)</button>
                 </div>
 
                 {{-- Form selesaikan: upload foto selesai --}}
@@ -687,6 +691,11 @@
     document.getElementById('absen-form').addEventListener('submit', function() {
         tampilkanLoading('Menyimpan...');
     });
+
+    // Kalau ada pesan error/sukses, langsung gulir ke atas biar tidak terlewat
+    if (document.querySelector('.alert')) {
+        window.scrollTo(0, 0);
+    }
 </script>
 
 </body>
