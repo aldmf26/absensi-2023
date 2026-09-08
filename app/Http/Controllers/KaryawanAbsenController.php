@@ -214,14 +214,16 @@ class KaryawanAbsenController extends Controller
             try {
                 $fontPath = $this->cariFontTtf($text);
                 if ($fontPath) {
-                    $fontSize = 32;
+                    // Ukuran font proporsional dengan lebar foto (HP resolusi tinggi),
+                    // supaya tulisan tetap kebaca kapan pun.
+                    $fontSize = max(40, (int) round($img->width() * 0.02));
                     // perkiraan lebar/tinggi teks untuk kotak latar
                     $bbox = imagettfbbox($fontSize, 0, $fontPath, $text);
                     $tw = $bbox[2] - $bbox[0];
                     $th = $bbox[1] - $bbox[7];
-                    $x = 18;
-                    $y = 18;
-                    $pad = 10;
+                    $pad = (int) round($fontSize * 0.4);
+                    $x = $pad;
+                    $y = $pad;
 
                     $img->rectangle($x - $pad, $y - $pad, $x + $tw + $pad, $y + $th + $pad, function ($draw) {
                         $draw->background([30, 30, 45]);
