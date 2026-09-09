@@ -255,8 +255,9 @@ class KaryawanAbsenController extends Controller
             'tanggal' => 'required|date',
             'foto' => 'required|image|mimes:jpeg,jpg,png|max:5120',
             'ket' => 'nullable|string|max:255',
-            'jam_mulai' => 'nullable|date_format:H:i',
-            'jam_selesai' => 'nullable|date_format:H:i',
+'jam_mulai' => 'nullable|date_format:H:i',
+                    'jam_selesai' => 'nullable|date_format:H:i',
+                    'jam_lembur' => 'nullable|date_format:H:i',
         ]);
 
         // Tanggal tidak boleh masa depan (WITA)
@@ -306,13 +307,13 @@ class KaryawanAbsenController extends Controller
             'status' => 'bekerja',
         ];
 
-        // LEMBUR (id 8): jam awal/akhir diinput manual oleh karyawan.
+        // LEMBUR (id 8): jam awal diinput manual oleh karyawan.
+        // Jam selesai boleh kosong (belum tahu kapan selesai) -> diisi saat menekan SELESAI.
         if ($jenisId === 8) {
             $jamMulai = $request->jam_mulai;
-            $jamSelesai = $request->jam_selesai;
 
-            if (! $jamMulai || ! $jamSelesai) {
-                return back()->with('error', 'Untuk lembur, isi jam mulai dan jam selesai.');
+            if (! $jamMulai) {
+                return back()->with('error', 'Untuk lembur, isi jam mulai lembur.');
             }
 
             $data['jam_masuk'] = $request->tanggal . ' ' . $jamMulai . ':00';
@@ -321,8 +322,9 @@ class KaryawanAbsenController extends Controller
             // di kolom jam_masuk / jam_selesai (bukan di ket).
             $data['ket'] = $request->ket;
 
-            // tag agar saat tombol selesai tahu jam selesai manual
-            $data['jam_selesai'] = $request->tanggal . ' ' . $jamSelesai . ':00';
+            if ($request->jam_selesai) {
+                $data['jam_selesai'] = $request->tanggal . ' ' . $request->jam_selesai . ':00';
+            }
         } else {
             // Semua jenis lain: jam masuk = waktu tekan tombol (WITA)
             $data['jam_masuk'] = now('Asia/Makassar')->format('Y-m-d H:i:s');
@@ -340,6 +342,7 @@ class KaryawanAbsenController extends Controller
             'foto' => 'required|image|mimes:jpeg,jpg,png|max:5120',
             'foto_lembur' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
             'ket_lembur' => 'nullable|string|max:255',
+            'jam_lembur' => 'nullable|date_format:H:i',
         ]);
 
         $id = session('absen_karyawan.id');
@@ -360,8 +363,13 @@ class KaryawanAbsenController extends Controller
             'status' => 'selesai',
         ];
 
-        // LEMBUR (id 8): jam selesai sudah di-set manual saat absen masuk.
-        if ((int) $absen->id_jenis_pekerjaan !== 8) {
+        // LEMBUR (id 8): jam selesai bisa diisi saat mulai, atau diisi belakangan
+        // via dialog (jam_lembur) kalau tadi dibiarkan kosong.
+        if ((int) $absen->id_jenis_pekerjaan === 8) {
+            if (empty($absen->jam_selesai) && $request->jam_lembur) {
+                $update['jam_selesai'] = $absen->tanggal . ' ' . $request->jam_lembur . ':00';
+            }
+        } else {
             // Jenis lain: jam selesai = waktu tekan tombol (WITA)
             $update['jam_selesai'] = now('Asia/Makassar')->format('Y-m-d H:i:s');
         }

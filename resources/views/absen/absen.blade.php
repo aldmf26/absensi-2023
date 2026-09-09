@@ -540,6 +540,9 @@
                             <div class="nama">{{ optional($a->jenis)->jenis_pekerjaan ?? 'Pekerjaan' }}</div>
                             <div class="info">{{ \Carbon\Carbon::parse($a->tanggal)->format('d-m-Y') }}, masuk
                                 {{ $a->jam_masuk ? \Carbon\Carbon::parse($a->jam_masuk)->format('H:i') : '-' }}</div>
+                            @if ($a->id_jenis_pekerjaan == 8 && ! $a->jam_selesai)
+                                <div class="info" style="color:#b7791f;">⏱️ Jam selesai lembur belum diisi (isi saat menekan SELESAI)</div>
+                            @endif
                             <div><span class="badge badge-bekerja">SEDANG BEKERJA</span></div>
                         </div>
                         <button type="button" class="btn btn-yellow btn-selesai" data-id="{{ $a->id_absen }}">SELESAI
@@ -549,7 +552,8 @@
                     {{-- Form selesaikan: upload foto selesai --}}
                     <form id="selesai-form-{{ $a->id_absen }}" method="POST" action="{{ route('absen.selesai') }}"
                         enctype="multipart/form-data" class="hidden" style="margin-top:10px;"
-                        data-lembur="{{ $a->id_jenis_pekerjaan == 8 ? '1' : '0' }}">
+                        data-lembur="{{ $a->id_jenis_pekerjaan == 8 ? '1' : '0' }}"
+                        data-butuh-jam="{{ $a->id_jenis_pekerjaan == 8 && ! $a->jam_selesai ? '1' : '0' }}">
                         @csrf
                         <input type="hidden" name="id_absen" value="{{ $a->id_absen }}">
                         <input type="hidden" name="lembur" value="0">
@@ -630,13 +634,14 @@
                         <div style="display:flex;gap:12px;">
                             <div style="flex:1;">
                                 <label>Jam Mulai Lembur</label>
-                                <input type="time" name="jam_mulai" id="jam_mulai">
+                                <input type="time" name="jam_mulai" id="jam_mulai" required>
                             </div>
                             <div style="flex:1;">
-                                <label>Jam Selesai Lembur</label>
+                                <label>Jam Selesai Lembur (opsional)</label>
                                 <input type="time" name="jam_selesai" id="jam_selesai">
                             </div>
                         </div>
+                        <div style="color:#aaa;font-size:12px;margin-top:4px;">Kosongkan jika belum tahu jam selesainya. Nanti diisi saat menekan tombol SELESAI.</div>
                     </div>
 
                     <label>Foto Masuk</label>
@@ -668,8 +673,7 @@
         <div id="tab-cuti" class="tab-panel hidden">
             <div class="card">
                 <h3>🏖️ Cuti / Libur
-                    <span class="badge badge-selesai" style="float:right;">Sisa Cuti Tahunan: {{ $sisaJatah }}
-                        hari</span>
+                    <span class="badge badge-selesai" style="float:right;">Sisa Cuti Tahunan: {{ $sisaJatah }} hari</span>
                 </h3>
                 <form id="form-cuti" method="POST" action="{{ route('absen.cuti') }}">
                     @csrf
@@ -737,12 +741,10 @@
                 @else
                     {{-- Filter chip per jenis (sekaligus ringkasan total) --}}
                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="filterJenis">
-                        <button type="button" class="chip active" data-jenis="all">Semua
-                            ({{ $riwayatBulan->sum(fn($a) => $a->jumlah_hari ?? 1) }})</button>
+                        <button type="button" class="chip active" data-jenis="all">Semua ({{ $riwayatBulan->sum(fn($a) => $a->jumlah_hari ?? 1) }})</button>
                         @foreach ($riwayatBulan->groupBy('id_jenis_pekerjaan') as $jid => $grup)
                             <button type="button" class="chip"
-                                data-jenis="{{ $jid }}">{{ $labelJenis[(int) $jid] ?? (optional($grup->first()->jenis)->jenis_pekerjaan ?? 'Jenis ' . $jid) }}
-                                ({{ $grup->sum(fn($a) => $a->jumlah_hari ?? 1) }})</button>
+                                data-jenis="{{ $jid }}">{{ $labelJenis[(int) $jid] ?? (optional($grup->first()->jenis)->jenis_pekerjaan ?? 'Jenis ' . $jid) }} ({{ $grup->sum(fn($a) => $a->jumlah_hari ?? 1) }})</button>
                         @endforeach
                     </div>
 
@@ -797,8 +799,8 @@
     {{-- Dialog tanya lembur saat selesai --}}
     <div id="lembur-dialog">
         <div style="background:#fff;color:#111;padding:20px;border-radius:10px;width:90%;max-width:340px;">
-            <h4 style="margin:0 0 8px;">Selesai hari ini? 👋</h4>
-            <p style="margin:0 0 12px;font-size:14px;">Kalau sudah selesai bekerja, tekan tombol hijau. Kalau mau
+            <h4 style="margin:0 0 8px;" id="lembur-judul">Selesai hari ini? 👋</h4>
+            <p style="margin:0 0 12px;font-size:14px;" id="lembur-desc">Kalau sudah selesai bekerja, tekan tombol hijau. Kalau mau
                 lembur lagi, tekan tombol kuning.</p>
             <div id="lembur-jam-box" class="hidden" style="margin-bottom:12px;">
                 <label for="lembur-jam" style="font-size:13px;">Jam Selesai Lembur</label>
@@ -866,7 +868,7 @@
                 if (btn.dataset.id === '8') {
                     jamLembur.classList.remove('hidden');
                     document.getElementById('jam_mulai').required = true;
-                    document.getElementById('jam_selesai').required = true;
+                    document.getElementById('jam_selesai').required = false;
                 } else {
                     jamLembur.classList.add('hidden');
                     document.getElementById('jam_mulai').required = false;
@@ -954,6 +956,10 @@
             document.getElementById('lembur-foto-box').classList.add('hidden');
             document.getElementById('lembur-ket-box').classList.add('hidden');
             document.getElementById('lembur-ket').value = '';
+            document.getElementById('lembur-no').style.display = '';
+            document.getElementById('lembur-judul').textContent = 'Selesai hari ini? 👋';
+            document.getElementById('lembur-desc').textContent =
+                'Kalau sudah selesai bekerja, tekan tombol hijau. Kalau mau lembur lagi, tekan tombol kuning.';
             const limg = document.getElementById('img-lembur-selesai');
             if (limg) {
                 limg.src = '';
@@ -970,8 +976,8 @@
         document.querySelectorAll('form[id^="selesai-form-"]').forEach(form => {
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                // Baris yang sudah LEMBUR (jenis 8): langsung selesai, tanpa tanya lembur.
-                if (form.dataset.lembur === '1') {
+                // Baris yang sudah LEMBUR (jenis 8) dengan jam selesai sudah ada: langsung selesai, tanpa tanya lembur.
+                if (form.dataset.lembur === '1' && form.dataset.butuhJam !== '1') {
                     tampilkanLoading('Menyimpan...');
                     form.submit();
                     return;
@@ -979,6 +985,15 @@
                 pendingForm = form;
                 lemburStep = 0;
                 document.getElementById('lembur-jam').value = new Date().toTimeString().slice(0, 5);
+                if (form.dataset.lembur === '1') {
+                    // Lembur tanpa jam selesai: dialog hanya minta jam selesai lembur.
+                    document.getElementById('lembur-judul').textContent = 'Selesai lembur? 👋';
+                    document.getElementById('lembur-desc').textContent = 'Isi jam selesai lembur, lalu simpan.';
+                    document.getElementById('lembur-jam-box').classList.remove('hidden');
+                    document.getElementById('lembur-no').style.display = 'none';
+                    document.getElementById('lembur-ya').textContent = '✓ SIMPAN';
+                    lemburStep = 1;
+                }
                 document.getElementById('lembur-dialog').classList.add('show');
             });
         });
@@ -996,6 +1011,21 @@
         });
         document.getElementById('lembur-ya').addEventListener('click', () => {
             if (!pendingForm) return;
+            const f = pendingForm;
+            if (f.dataset.lembur === '1') {
+                // Baris lembur (jenis 8) tanpa jam selesai: isi jam selesai saja, foto sudah lewat form inline.
+                const jam = document.getElementById('lembur-jam').value;
+                if (!jam) {
+                    alert('Isi dulu jam selesai lembur.');
+                    return;
+                }
+                f.querySelector('input[name="lembur"]').value = '0';
+                f.querySelector('input[name="jam_lembur"]').value = jam;
+                f.querySelector('input[name="ket_lembur"]').value = '';
+                tutupLemburDialog();
+                kirimSelesai(f);
+                return;
+            }
             if (lemburStep === 0) {
                 lemburStep = 1;
                 document.getElementById('lembur-jam-box').classList.remove('hidden');
@@ -1004,7 +1034,6 @@
                 document.getElementById('lembur-ya').textContent = '✓ SIMPAN LEMBUR';
                 return;
             }
-            const f = pendingForm;
             const jam = document.getElementById('lembur-jam').value;
             if (!jam) {
                 alert('Isi dulu jam selesai lembur.');

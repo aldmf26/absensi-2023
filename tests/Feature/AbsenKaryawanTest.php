@@ -157,6 +157,50 @@ class AbsenKaryawanTest extends TestCase
         $res->assertSessionHas('error');
     }
 
+    public function test_mulai_lembur_tanpa_jam_selesai_diisi_saat_selesai()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        // mulai lembur TANPA jam selesai -> boleh, jam_selesai kosong
+        $res = $this->post('/absen', [
+            'id_jenis' => 8,
+            'tanggal' => now()->toDateString(),
+            'foto' => UploadedFile::fake()->image('lembur.jpg'),
+            'jam_mulai' => '18:00',
+        ]);
+        $res->assertRedirect('/absen');
+
+        $lembur = Absensi::where('id_karyawan', $kar->id_karyawan)->where('id_jenis_pekerjaan', 8)->first();
+        $this->assertNotNull($lembur);
+        $this->assertEquals('bekerja', $lembur->status);
+        $this->assertEquals('18:00', \Carbon\Carbon::parse($lembur->jam_masuk)->format('H:i'));
+        $this->assertNull($lembur->jam_selesai);
+
+        // selesai: isi jam selesai lembur via dialog (jam_lembur)
+        $res2 = $this->post('/absen/selesai', [
+            'id_absen' => $lembur->id_absen,
+            'foto' => UploadedFile::fake()->image('selesai.jpg'),
+            'lembur' => 0,
+            'jam_lembur' => '21:30',
+        ]);
+        $res2->assertRedirect('/absen');
+
+        $lembur->refresh();
+        $this->assertEquals('selesai', $lembur->status);
+        $this->assertEquals('21:30', \Carbon\Carbon::parse($lembur->jam_selesai)->format('H:i'));
+
+        // jangan buat baris tambahan (masih 1 baris lembur)
+        $this->assertEquals(1, Absensi::where('id_karyawan', $kar->id_karyawan)
+            ->where('id_jenis_pekerjaan', 8)->count());
+    }
+
     public function test_selesai_absen_update_status_dan_foto()
     {
         $kar = Karyawan::create([
