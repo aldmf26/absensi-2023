@@ -78,35 +78,37 @@
                                     </select>
                                 </div>
                                 <div class="col-sm-2 mt-2">
-                                    <button class="btn btn-sm btn-info" id="btnFilter" type="submit">view</button>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-info" id="btnFilter" type="submit">view</button>
+                                        <button type="button" class="btn btn-sm btn-info dropdown-toggle dropdown-toggle-split"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div class="dropdown-menu dropdown-menu-right">
+                                            <h6 class="dropdown-header">Tambah</h6>
+                                            <button class="dropdown-item" type="button" data-toggle="modal"
+                                                data-target="#tambahAbsensi"><i class="fas fa-plus"></i> Tambah Absensi</button>
+                                            <button class="dropdown-item" type="button" data-toggle="modal"
+                                                data-target="#tambahCuti"><i class="fas fa-plus"></i> Tambah Cuti / Libur</button>
+                                            <div class="dropdown-divider"></div>
+                                            <h6 class="dropdown-header">Export / Backup</h6>
+                                            <a class="dropdown-item" href="{{ route('excel') }}"><i class="fas fa-file-excel"></i> Export Semua</a>
+                                            <a class="dropdown-item" href="{{ route('exportPertanggal', ['dari' => $dari, 'sampai' => $sampai]) }}"><i class="fas fa-file-excel"></i> Export Rentang Ini</a>
+                                            <a class="dropdown-item" href="{{ route('backupDatabase') }}"><i class="fas fa-database"></i> Backup Database</a>
+                                            @if ($canHapusPertanggal)
+                                                <div class="dropdown-divider"></div>
+                                                <div class="p-2 mx-2 mb-1" style="background:#fbe9e7;border:1px solid #ffcdd2;border-radius:6px;">
+                                                    <div class="text-danger small font-weight-bold mb-1" style="letter-spacing:1px;">⚠️ DANGER ZONE</div>
+                                                    <button class="dropdown-item btn-sm text-danger px-1" type="button" data-toggle="modal"
+                                                        data-target="#hapusPertanggal"><i class="fa fa-trash"></i> Hapus Pertanggal</button>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </form><br>
+
                         <form action="{{ route('addAbsensi') }}" method="post">
                             @csrf
-                            <button type="button" class="btn btn-primary mb-3 ml-4" data-toggle="modal"
-                                data-target="#tambahAbsensi">
-                                + Tambah Absensi
-                            </button>
-                            <button type="button" class="btn btn-info mb-3" data-toggle="modal"
-                                data-target="#tambahCuti">
-                                + Tambah Cuti/Libur
-                            </button>
-                            <a href="{{ route('excel') }}" class="btn btn-success mb-3"><i class="fas fa-file-excel"></i>
-                                Export All</a>
-                            <a href="{{ route('exportPertanggal', ['dari' => $dari, 'sampai' => $sampai]) }}" class="btn btn-success mb-3"><i class="fas fa-file-excel"></i>
-                                Export Pertanggal
-                            </a>
-                            <a href="{{ route('backupDatabase') }}" class="btn btn-warning mb-3"><i class="fas fa-database"></i>
-                                Backup Database
-                            </a>
-                            @if ($canHapusPertanggal)
-                                <button type="button" class="btn btn-danger mb-3" data-toggle="modal"
-                                    data-target="#hapusPertanggal"><i class="fa fa-trash"></i>
-                                    Hapus Pertanggal
-                                </button>
-                            @endif
-                            <br>
                             @if (session('info'))
                                 <div class="alert alert-info alert-dismissible ml-4 mr-1">
                                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
