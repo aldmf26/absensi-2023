@@ -625,12 +625,82 @@ class AbsenKaryawanTest extends TestCase
         $res->assertOk();
         $res->assertSee('Riwayat Absen');
         $res->assertSee('Absen Harian (2)');
-        $res->assertDontSee('Cuti Tahunan (2)');
+        $res->assertDontSee('Cuti (2)');
 
         // bulan lalu: hanya cuti
         $res2 = $this->get('/absen?bulan=' . $bulanLalu . '&tahun=' . $tahunLalu);
         $res2->assertOk();
-        $res2->assertSee('Cuti Tahunan (2)');
+        $res2->assertSee('Cuti (2)');
         $res2->assertDontSee('Absen Harian (2)');
+    }
+
+    public function test_tombol_absen_sekarang_muncul_saat_belum_absen()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        $res = $this->get('/absen');
+        $res->assertOk();
+        $res->assertSee('ABSEN SEKARANG (MASUK)');
+        $res->assertSee('form-absen-cepat');
+        $res->assertSee('name="id_jenis" value="9"', false);
+    }
+
+    public function test_tombol_absen_sekarang_tidak_muncul_saat_cuti_hari_ini()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        Absensi::create([
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 17,
+            'id_pemakai' => 1,
+            'tanggal' => now('Asia/Makassar')->toDateString(),
+            'status' => 'selesai',
+            'jumlah_hari' => null,
+        ]);
+
+        $res = $this->get('/absen');
+        $res->assertOk();
+        $res->assertSee('SELESAI');
+        $res->assertDontSee('btn-absen-cepat');
+    }
+
+    public function test_tombol_absen_sekarang_tidak_muncul_setelah_absen_masuk()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        Absensi::create([
+            'id_karyawan' => $kar->id_karyawan,
+            'id_jenis_pekerjaan' => 9,
+            'id_pemakai' => 1,
+            'tanggal' => now('Asia/Makassar')->toDateString(),
+            'status' => 'bekerja',
+            'jumlah_hari' => null,
+        ]);
+
+        $res = $this->get('/absen');
+        $res->assertOk();
+        $res->assertSee('SEDANG BEKERJA');
+        $res->assertDontSee('btn-absen-cepat');
     }
 }

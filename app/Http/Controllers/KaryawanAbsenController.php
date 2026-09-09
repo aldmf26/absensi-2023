@@ -76,7 +76,19 @@ class KaryawanAbsenController extends Controller
 
         // Jenis yang dipakai untuk foto mandiri (sembunyikan CUTI & LIBUR PULANG)
         $sembunyi = [12, 17];
-        $jenis = Jenis::whereNotIn('id', $sembunyi)->get();
+        // Label ramah untuk user awam; urutan: Absen Harian dulu, Lembur paling akhir.
+        $labelJenis = [
+            9 => 'Absen Harian',
+            10 => 'Jaga Malam (JGM)',
+            8 => 'Lembur / Jam2an',
+            12 => 'Libur Pulang Luar Kota',
+            17 => 'Cuti',
+        ];
+        $urutan = [9, 10, 8];
+        $jenis = Jenis::whereNotIn('id', $sembunyi)->get()
+            ->filter(fn ($j) => in_array($j->id, $urutan, true))
+            ->sortBy(fn ($j) => array_search($j->id, $urutan))
+            ->values();
 
         // Sisa jatah Cuti Tahunan (12 hari/tahun, Jan-Des).
         // COALESCE(jumlah_hari,1) menghitung format lama (1 baris = N hari) & baru (1 baris = 1 hari).
@@ -128,6 +140,7 @@ class KaryawanAbsenController extends Controller
             'prev' => $prev,
             'next' => $next,
             'adaCutiHariIni' => $adaCutiHariIni,
+            'labelJenis' => $labelJenis,
         ]);
     }
 

@@ -8,6 +8,10 @@
     </select>
     <label for="">Tanggal</label>
     <input type="date" value="{{ $d->tanggal }}" name="tanggal" class="form-control mb-3">
+    <label for="">Jam Masuk <small class="text-muted">(kosongkan bila tidak ada)</small></label>
+    <input type="time" value="{{ $d->jam_masuk ? \Carbon\Carbon::parse($d->jam_masuk)->format('H:i') : '' }}" name="jam_masuk" class="form-control mb-3">
+    <label for="">Jam Selesai <small class="text-muted">(kosongkan bila tidak ada)</small></label>
+    <input type="time" value="{{ $d->jam_selesai ? \Carbon\Carbon::parse($d->jam_selesai)->format('H:i') : '' }}" name="jam_selesai" class="form-control mb-3">
     <label for="">Jenis Pekerjaan</label>
     <select class="form-control" name="id_jenis" id="">
         @foreach ($jenis_pekerjaan as $p)

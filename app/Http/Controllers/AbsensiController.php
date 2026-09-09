@@ -177,17 +177,33 @@ $tahun = date('Y');
 
     public function editAbsensi(Request $request)
     {
+        $request->validate([
+            'id_absen' => 'required|integer',
+            'id_karyawan' => 'required|integer',
+            'id_jenis' => 'required|integer',
+            'tanggal' => 'required|date',
+            'jam_masuk' => 'nullable|date_format:H:i',
+            'jam_selesai' => 'nullable|date_format:H:i',
+        ]);
+
+        $tanggal = $request->tanggal;
         $data = [
             'id_karyawan' => $request->id_karyawan,
             'id_jenis_pekerjaan' => $request->id_jenis,
             'id_pemakai' => $request->id_pemakai ?? 1,
-            'tanggal' => $request->tanggal,
+            'tanggal' => $tanggal,
             'ket' => $request->keterangan,
-            'status' => 'selesai',
         ];
 
-        Absensi::where('id_absen', $request->id_absen)->update($data);
+        // Jam digabung dengan tanggal; kosong diartikan hapus jam.
+        $data['jam_masuk'] = $request->jam_masuk ? $tanggal . ' ' . $request->jam_masuk . ':00' : null;
+        $data['jam_selesai'] = $request->jam_selesai ? $tanggal . ' ' . $request->jam_selesai . ':00' : null;
 
+        // Kalau diisi jam selesai, baris dianggap selesai; jika tidak, pertahankan status lama.
+        $statusLama = Absensi::where('id_absen', $request->id_absen)->value('status');
+        $data['status'] = $request->jam_selesai ? 'selesai' : ($statusLama ?: 'selesai');
+
+        Absensi::where('id_absen', $request->id_absen)->update($data);
 
         return redirect()->route('absensi', ['tglDari' => $request->tglDari, 'tglSampai' => $request->tglSampai]);
     }
