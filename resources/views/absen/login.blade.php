@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Absen Karyawan</title>
     <link rel="shortcut icon" href="{{ asset('adminlte') }}/images/eabs.ico">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#198754">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Absensi">
     <link rel="stylesheet" href="{{ asset('adminlte') }}/plugins/fontawesome-free/css/all.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -73,5 +80,14 @@
         </form>
         <div class="hint">PIN diberikan oleh admin</div>
     </div>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/serviceworker.js').catch(function (err) {
+                    console.warn('Service worker gagal:', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
