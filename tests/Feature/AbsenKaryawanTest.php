@@ -97,6 +97,36 @@ class AbsenKaryawanTest extends TestCase
         $res2->assertSessionHas('error');
     }
 
+    public function test_foto_absen_otomatis_diperkecil_saat_diproses()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        $foto = UploadedFile::fake()->image('masuk.jpg', 2400, 1800);
+
+        $this->post('/absen', [
+            'id_jenis' => 9,
+            'tanggal' => now()->toDateString(),
+            'foto' => $foto,
+        ])->assertRedirect('/absen');
+
+        $row = Absensi::where('id_karyawan', $kar->id_karyawan)->first();
+        $this->assertNotNull($row->foto_masuk);
+
+        $storagePath = str_replace('storage/', '', $row->foto_masuk);
+        $this->assertTrue(Storage::disk('public')->exists($storagePath));
+
+        [$width, $height] = getimagesize(Storage::disk('public')->path($storagePath));
+        $this->assertLessThanOrEqual(1280, $width);
+        $this->assertLessThanOrEqual(1280, $height);
+    }
+
     public function test_tambahan_lembur_boleh_saat_harian_bekerja()
     {
         $kar = Karyawan::create([

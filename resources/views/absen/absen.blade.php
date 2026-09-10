@@ -897,6 +897,50 @@
             });
         });
 
+        // Kompres foto di HP sebelum dikirim agar upload cepat (max 1600px, JPEG 80)
+        function kompresGambar(file, cb) {
+            if (!file || !/^image\/(png|jpe?g|heic|heif)$/i.test(file.type) || file.size <= 300 * 1024) {
+                cb(null);
+                return;
+            }
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = function () {
+                URL.revokeObjectURL(url);
+                const MAX = 1600;
+                const sc = Math.min(1, MAX / Math.max(img.width, img.height));
+                const w = Math.max(1, Math.round(img.width * sc));
+                const h = Math.max(1, Math.round(img.height * sc));
+                const cv = document.createElement('canvas');
+                cv.width = w;
+                cv.height = h;
+                cv.getContext('2d').drawImage(img, 0, 0, w, h);
+                cv.toBlob(function (blob) {
+                    if (!blob) { cb(null); return; }
+                    const nama = file.name.replace(/\.[^.]+$/i, '.jpg');
+                    cb(new File([blob], nama, { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.8);
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); cb(null); };
+            img.src = url;
+        }
+
+        // Ganti file yang terpilih dengan versi terkompresi (kalau menguntungkan)
+        function gantiDenganKompresi(input, next) {
+            const file = input.files && input.files[0];
+            if (!file) { if (next) next(); return; }
+            kompresGambar(file, function (hasil) {
+                if (hasil) {
+                    try {
+                        const dt = new DataTransfer();
+                        dt.items.add(hasil);
+                        input.files = dt.files;
+                    } catch (e) { /* kirim file asli bila tidak didukung */ }
+                }
+                if (next) next();
+            });
+        }
+
         // Overlay loading
         function tampilkanLoading(teks) {
             document.getElementById('loading-text').textContent = teks || 'Menyimpan...';
@@ -912,20 +956,23 @@
                 btnCepat.addEventListener('click', () => fotoCepat.click());
                 fotoCepat.addEventListener('change', function() {
                     if (!this.files.length) return;
-                    const fd = new FormData(formCepat);
-                    tampilkanLoading('Menyimpan...');
-                    fetch(formCepat.action, {
-                            method: 'POST',
-                            body: fd
-                        })
-                        .then(r => {
-                            if (r.redirected) {
-                                window.location.href = r.url;
-                                return;
-                            }
-                            window.location.reload();
-                        })
-                        .catch(() => window.location.reload());
+                    // Kompres dulu (biar cepat), baru kirim
+                    gantiDenganKompresi(this, () => {
+                        const fd = new FormData(formCepat);
+                        tampilkanLoading('Menyimpan...');
+                        fetch(formCepat.action, {
+                                method: 'POST',
+                                body: fd
+                            })
+                            .then(r => {
+                                if (r.redirected) {
+                                    window.location.href = r.url;
+                                    return;
+                                }
+                                window.location.reload();
+                            })
+                            .catch(() => window.location.reload());
+                    });
                 });
             }
         @endif
@@ -1222,7 +1269,7 @@
             tampilkanLoading('Menyimpan...');
         });
 
-        // Foto selesai: pratinjau
+        // Foto selesai: pratinjau + kompresi otomatis
         document.querySelectorAll('input[type=file]').forEach(input => {
             input.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -1230,6 +1277,10 @@
             input.addEventListener('change', function() {
                 const file = this.files[0];
                 if (!file) return;
+                // Kompres file bila menguntungkan (kecuali alur ABSEN SEKARANG yang sudah mengkompres)
+                if (this.id !== 'foto-absen-cepat') {
+                    gantiDenganKompresi(this);
+                }
                 const key = this.id === 'file-masuk' ?
                     'masuk' :
                     this.id === 'file-lembur-selesai' ?

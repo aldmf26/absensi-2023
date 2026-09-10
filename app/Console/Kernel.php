@@ -15,7 +15,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Proses foto absen (watermark + resize) berjalan di background
+        // agar halaman absen tidak perlu menunggu.
+        $schedule->command('queue:work --stop-when-empty --tries=3')
+            ->everyMinute()
+            ->withoutOverlapping();
     }
 
     /**

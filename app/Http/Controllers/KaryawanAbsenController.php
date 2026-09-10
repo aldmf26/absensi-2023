@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProsesFotoAbsen;
 use App\Models\Absensi;
 use App\Models\Jenis;
 use App\Models\Karyawan;
@@ -295,7 +296,7 @@ class KaryawanAbsenController extends Controller
         }
 
         $namaJenis = Jenis::where('id', $jenisId)->value('jenis_pekerjaan');
-        $fotoPath = $this->simpanFoto($request->file('foto'), 'masuk', $namaJenis);
+        $fotoPath = $this->simpanFotoCepat($request->file('foto'), 'masuk', $namaJenis);
 
         $data = [
             'id_karyawan' => $id,
@@ -330,7 +331,11 @@ class KaryawanAbsenController extends Controller
             $data['jam_masuk'] = now('Asia/Makassar')->format('Y-m-d H:i:s');
         }
 
-        Absensi::create($data);
+        $absen = Absensi::create($data);
+
+        if ($fotoPath) {
+            ProsesFotoAbsen::dispatch($absen->id_absen, 'foto_masuk', str_replace('storage/', '', $fotoPath));
+        }
 
         return redirect()->route('absen.index')->with('sukses', 'Absen masuk tersimpan.');
     }
@@ -356,7 +361,7 @@ class KaryawanAbsenController extends Controller
         }
 
         $namaJenis = Jenis::where('id', $absen->id_jenis_pekerjaan)->value('jenis_pekerjaan');
-        $fotoPath = $this->simpanFoto($request->file('foto'), 'selesai', $namaJenis);
+        $fotoPath = $this->simpanFotoCepat($request->file('foto'), 'selesai', $namaJenis);
 
         $update = [
             'foto_selesai' => $fotoPath,
@@ -376,6 +381,10 @@ class KaryawanAbsenController extends Controller
 
         $absen->update($update);
 
+        if ($fotoPath) {
+            ProsesFotoAbsen::dispatch($absen->id_absen, 'foto_selesai', str_replace('storage/', '', $fotoPath));
+        }
+
         $pesan = 'Absen selesai disimpan.';
 
         // Lembur dadakan setelah kerja normal: buat BARIS LEMBUR terpisah (jenis 8),
@@ -389,9 +398,9 @@ class KaryawanAbsenController extends Controller
                 return back()->with('error', 'Ambil dulu foto selesai lembur.');
             }
 
-            $fotoLembur = $this->simpanFoto($request->file('foto_lembur'), 'selesai', 'Lembur');
+            $fotoLembur = $this->simpanFotoCepat($request->file('foto_lembur'), 'selesai', 'Lembur');
 
-            Absensi::create([
+            $barisLembur = Absensi::create([
                 'id_karyawan' => $id,
                 'id_jenis_pekerjaan' => 8,
                 'id_pemakai' => $absen->id_pemakai ?? 1,
@@ -404,97 +413,32 @@ class KaryawanAbsenController extends Controller
                 'jumlah_hari' => null,
             ]);
 
+            if ($fotoLembur) {
+                ProsesFotoAbsen::dispatch($barisLembur->id_absen, 'foto_selesai', str_replace('storage/', '', $fotoLembur));
+            }
+
             $pesan = 'Absen selesai & baris Lembur baru ditambahkan.';
         }
 
         return redirect()->route('absen.index')->with('sukses', $pesan);
     }
 
-    private function simpanFoto($file, $jenis, $namaJenis = null)
+    /**
+     * Simpan foto upload secara mentah ke storage publik secepatnya.
+     * Proses watermark + resize dilakukan asinkron oleh ProsesFotoAbsen
+     * agar pengguna tidak menunggu.
+     */
+    private function simpanFotoCepat($file, $jenis, $namaJenis = null)
     {
-        $nama = Karyawan::where('id_karyawan', session('absen_karyawan.id'))->value('nama_karyawan');
-
-        try {
-            $img = \Intervention\Image\Facades\Image::make($file);
-        } catch (\Exception $e) {
-            $img = null;
+        $stamp = now('Asia/Makassar')->format('Ymd_His');
+        $ext = strtolower($file->getClientOriginalExtension());
+        if (! in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+            $ext = 'jpg';
         }
+        $namaFile = $stamp . '_' . $jenis . '_' . uniqid() . '.' . $ext;
 
-        $waktu = now('Asia/Makassar');
-        $stamp = $waktu->format('Ymd_His');
-        $namaFile = 'absen/' . $stamp . '_' . $jenis . '_' . uniqid() . '.jpg';
+        $path = $file->storeAs('absen', $namaFile, 'public');
 
-        if ($img) {
-            $img->orientate();
-
-            // Watermark header (anti-palsu): jenis pekerjaan + timestamp di atas foto,
-            // huruf besar tebal tanpa latar.
-            $label = $namaJenis ? strtoupper($namaJenis) : 'ABSEN ' . strtoupper($jenis);
-            $barisWaktu = $waktu->format('d-m-Y H:i:s') . ' WITA';
-            try {
-                $fontPath = $this->cariFontTtf($label . ' ' . $barisWaktu);
-                if ($fontPath) {
-                    // Ukuran font besar, proporsional dengan lebar foto (resolusi HP tinggi)
-                    $fontSize = max(56, (int) round($img->width() * 0.03));
-                    $centerX = (int) round($img->width() / 2);
-                    $marginTop = (int) round($fontSize * 0.5);
-
-                    $img->text($label, $centerX, $marginTop, function ($font) use ($fontPath, $fontSize) {
-                        $font->file($fontPath);
-                        $font->size($fontSize);
-                        $font->color([255, 255, 255]);
-                        $font->align('center');
-                        $font->valign('top');
-                    });
-                    $bbox = imagettfbbox($fontSize, 0, $fontPath, $label);
-                    $th = $bbox[1] - $bbox[7];
-                    $img->text($barisWaktu, $centerX, $marginTop + $th + (int) round($fontSize * 0.2), function ($font) use ($fontPath, $fontSize) {
-                        $font->file($fontPath);
-                        $font->size($fontSize);
-                        $font->color([255, 255, 255]);
-                        $font->align('center');
-                        $font->valign('top');
-                    });
-                }
-            } catch (\Exception $e) {
-                // abaikan watermark bila gagal, timestamp tetap di DB
-            }
-
-            $img->encode('jpg', 80);
-            Storage::disk('public')->put($namaFile, $img->getEncoded());
-        } else {
-            $contents = file_get_contents($file->getRealPath());
-            Storage::disk('public')->put($namaFile, $contents);
-        }
-
-        return 'storage/' . $namaFile;
-    }
-
-    private function cariFontTtf($teks)
-    {
-        $kandidat = [
-            resource_path('fonts/arialbd.ttf'),
-            resource_path('fonts/DejaVuSans-Bold.ttf'),
-            'C:/Windows/Fonts/arialbd.ttf',
-            'C:/Windows/Fonts/arial.ttf',
-            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-            '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
-            '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
-        ];
-
-        foreach ($kandidat as $path) {
-            if (! file_exists($path)) {
-                continue;
-            }
-            // pastikan font benar-benar bisa menggambar glyph (bukan icon font)
-            $bbox = @imagettfbbox(28, 0, $path, $teks);
-            if ($bbox === false || ($bbox[2] - $bbox[0]) <= 5) {
-                continue;
-            }
-            return $path;
-        }
-
-        return null;
+        return $path ? 'storage/' . $path : null;
     }
 }
