@@ -62,24 +62,46 @@ class FotoAbsenProcessor
      */
     private static function gambarWatermark($img, string $fontPath, string $label, string $barisWaktu): void
     {
-        // Ukuran font ~11% tinggi foto, hasil: blok 2 baris ≈ 1/3 tinggi gambar.
-        $fontSize = max(64, (int) round($img->height() * 0.11));
-        $centerX = (int) round($img->width() / 2);
+        $imgW = $img->width();
+        $imgH = $img->height();
+        $centerX = (int) round($imgW / 2);
+        $marginX = (int) round($imgW * 0.05);
+        $maxTextW = $imgW - ($marginX * 2); // batas lebar teks
 
+        // --- Hitung fontSize yang muat secara horizontal ---
+        // Cari rasio px-per-fonsize dari baris terpanjang, lalu hitung max fontSize
+        $fontSize = 100; // default awal
+        foreach ([$label, $barisWaktu] as $teks) {
+            $bbox = imagettfbbox($fontSize, 0, $fontPath, $teks);
+            if (! $bbox) continue;
+            $x2 = max($bbox[0], $bbox[2], $bbox[4], $bbox[6]);
+            $x1 = min($bbox[0], $bbox[2], $bbox[4], $bbox[6]);
+            $lebar = $x2 - $x1;
+            if ($lebar <= 0) continue;
+            $pxPerSize = $lebar / $fontSize;
+            $candidate = (int) floor($maxTextW / $pxPerSize);
+            $fontSize = min($fontSize, $candidate);
+        }
+        $fontSize = max(28, $fontSize); // batas minimum agar tetap terbaca
+
+        // --- Hitung tinggi kedua baris ---
         $h1 = self::tinggiTeks($fontSize, $fontPath, $label);
         $h2 = self::tinggiTeks($fontSize, $fontPath, $barisWaktu);
-        $gap = (int) round($fontSize * 0.18);
-        $pad = (int) round($fontSize * 0.6);
-        $marginBawah = (int) round($img->height() * 0.04);
+        $gap = max(4, (int) round($fontSize * 0.18));
+        $stackH = $h1 + $gap + $h2;
 
-        $bandTop = $img->height() - $marginBawah - $pad - $h1 - $gap - $h2 - $pad;
+        // --- Band bawah = tepat 1/3 tinggi foto ---
+        $bandH = (int) round($imgH / 3);
+        $bandTop = $imgH - $bandH;
 
-        // Band gelap transparan agar teks selalu terbaca
-        $img->rectangle(0, $bandTop, $img->width() - 1, $img->height() - 1, function ($draw) {
+        // Band gelap transparan
+        $img->rectangle(0, $bandTop, $imgW - 1, $imgH - 1, function ($draw) {
             $draw->background([0, 0, 0, 0.55]);
         });
 
-        $y1 = $bandTop + $pad + $h1;
+        // --- Teks di tengah band secara vertikal ---
+        $bandCenterY = $bandTop + (int) round($bandH / 2);
+        $y1 = $bandCenterY - (int) round($stackH / 2) + $h1;
         $y2 = $y1 + $gap + $h2;
 
         self::gambarBaris($img, $fontPath, $fontSize, $label, $centerX, $y1);
