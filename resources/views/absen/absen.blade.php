@@ -803,6 +803,59 @@
                 class="tab-ico">📋</span>Riwayat</button>
     </nav>
 
+    {{-- Pilih sumber foto: kamera / galeri (biar pilihan konsisten di Android & iPhone) --}}
+    <input type="file" id="input-kamera" accept="image/*" capture="environment" class="hidden">
+    <div id="sheet-sumber-foto">
+        <div class="sheet-mask" onclick="tutupSheetSumber()"></div>
+        <div class="sheet-panel">
+            <div class="sheet-title">Pilih sumber foto</div>
+            <button type="button" class="btn btn-green" onclick="pilihSumber('kamera')">📷 Ambil Foto</button>
+            <button type="button" class="btn btn-blue" onclick="pilihSumber('galeri')">🗂️ Dari Galeri</button>
+            <button type="button" class="btn btn-ghost" onclick="tutupSheetSumber()">Batal</button>
+        </div>
+    </div>
+    <style>
+        #sheet-sumber-foto {
+            position: fixed;
+            inset: 0;
+            display: none;
+            z-index: 998;
+        }
+        #sheet-sumber-foto.show {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .sheet-mask {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .5);
+        }
+        .sheet-panel {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, .25);
+        }
+        .sheet-title {
+            text-align: center;
+            font-weight: 700;
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        .btn-blue {
+            background: #2563eb;
+            color: #fff;
+        }
+    </style>
+
     {{-- Dialog tanya lembur saat selesai --}}
     <div id="lembur-dialog">
         <div style="background:#fff;color:#111;padding:20px;border-radius:10px;width:90%;max-width:340px;">
@@ -941,6 +994,41 @@
             });
         }
 
+        // Pilih sumber foto (kamera / galeri) dari satu sheet agar konsisten di semua HP
+        let targetFotoInput = null;
+
+        function bukaSheetSumber(targetInput) {
+            targetFotoInput = targetInput;
+            document.getElementById('sheet-sumber-foto').classList.add('show');
+        }
+
+        function tutupSheetSumber() {
+            document.getElementById('sheet-sumber-foto').classList.remove('show');
+            targetFotoInput = null;
+        }
+
+        function pilihSumber(mode) {
+            const input = targetFotoInput;
+            tutupSheetSumber();
+            if (!input) return;
+            if (mode === 'galeri') {
+                input.click();
+                return;
+            }
+            // Kamera: pakai input capture lingkungan; hasilnya disalin ke input tujuan
+            const kam = document.getElementById('input-kamera');
+            kam.onchange = function() {
+                const f = kam.files[0];
+                kam.value = '';
+                if (!f) return;
+                const dt = new DataTransfer();
+                dt.items.add(f);
+                input.files = dt.files;
+                input.dispatchEvent(new Event('change'));
+            };
+            kam.click();
+        }
+
         // Overlay loading
         function tampilkanLoading(teks) {
             document.getElementById('loading-text').textContent = teks || 'Menyimpan...';
@@ -953,7 +1041,7 @@
             const fotoCepat = document.getElementById('foto-absen-cepat');
             const formCepat = document.getElementById('form-absen-cepat');
             if (btnCepat && fotoCepat && formCepat) {
-                btnCepat.addEventListener('click', () => fotoCepat.click());
+                btnCepat.addEventListener('click', () => bukaSheetSumber(fotoCepat));
                 fotoCepat.addEventListener('change', function() {
                     if (!this.files.length) return;
                     // Kompres dulu (biar cepat), baru kirim
@@ -1303,12 +1391,12 @@
             });
         });
 
-        // Klik placeholder kamera -> buka file input
+        // Klik placeholder kamera -> pilih sumber foto (kamera / galeri)
         document.querySelectorAll('.photo-placeholder').forEach(ph => {
             ph.addEventListener('click', () => {
                 const box = ph.closest('.photo-box');
                 const fileInput = box.querySelector('input[type=file]');
-                if (fileInput) fileInput.click();
+                if (fileInput) bukaSheetSumber(fileInput);
             });
         });
 
