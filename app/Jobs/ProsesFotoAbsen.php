@@ -34,7 +34,7 @@ class ProsesFotoAbsen implements ShouldQueue
         $kolomWaktu = $this->kolom === 'foto_masuk'
             ? ($absen->jam_masuk ?: $absen->created_at)
             : ($absen->jam_selesai ?: $absen->created_at);
-        $waktu = $kolomWaktu ? \Carbon\Carbon::parse($kolomWaktu, 'Asia/Makassar') : now('Asia/Makassar');
+        $waktu = $kolomWaktu ? \Carbon\Carbon::parse((string) $kolomWaktu, 'Asia/Makassar') : now('Asia/Makassar');
 
         FotoAbsenProcessor::proses($this->path, $this->kolom, $namaJenis, $waktu);
     }
