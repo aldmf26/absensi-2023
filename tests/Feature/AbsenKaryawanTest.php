@@ -752,6 +752,36 @@ class AbsenKaryawanTest extends TestCase
         $res->assertDontSee('btn-absen-cepat');
     }
 
+    public function test_absen_masuk_lalu_index_tampil_sedang_bekerja()
+    {
+        $kar = Karyawan::create([
+            'nama_karyawan' => 'Budi',
+            'tanggal_masuk' => '2020-01-01',
+            'id_departemen' => 1,
+            'posisi' => 'Satpam',
+            'pin_absen' => Hash::make('1234'),
+        ]);
+        session(['absen_karyawan.id' => $kar->id_karyawan]);
+
+        $foto = UploadedFile::fake()->image('masuk.jpg', 1200, 1600);
+
+        $res = $this->post('/absen', [
+            'id_jenis' => 9,
+            'tanggal' => now('Asia/Makassar')->toDateString(),
+            'foto' => $foto,
+            'ket' => 'masuk pagi',
+        ]);
+        $res->assertRedirect('/absen');
+
+        // Setelah redirect, index harus menampilkan SEDANG BEKERJA
+        $res2 = $this->get('/absen');
+        $res2->assertOk();
+        $res2->assertSee('SEDANG BEKERJA');
+
+        // Tombol ABSEN SEKARANG harus hilang karena sudah absen masuk
+        $res2->assertDontSee('btn-absen-cepat');
+    }
+
     public function test_tombol_absen_sekarang_tidak_muncul_setelah_absen_masuk()
     {
         $kar = Karyawan::create([

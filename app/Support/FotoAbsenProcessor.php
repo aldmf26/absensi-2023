@@ -24,6 +24,11 @@ class FotoAbsenProcessor
             return false;
         }
 
+        // JIKA gambar gagal dibaca (mis. file fake storage kosong), skip tanpa error.
+        if ($img->width() === 0 || $img->height() === 0) {
+            return false;
+        }
+
         $img->orientate();
 
         // Perkecil dulu: cepat & ringan, foto absen tak butuh megapixel penuh.
@@ -64,9 +69,19 @@ class FotoAbsenProcessor
     {
         $imgW = $img->width();
         $imgH = $img->height();
+
+        // Jangan proses jika gambar terlalu kecil untuk stempel yang berarti.
+        if ($imgW < 80 || $imgH < 80) {
+            return;
+        }
+
         $centerX = (int) round($imgW / 2);
         $marginX = (int) round($imgW * 0.05);
         $maxTextW = $imgW - ($marginX * 2); // batas lebar teks
+
+        if ($maxTextW <= 0) {
+            return;
+        }
 
         // --- Hitung fontSize yang muat secara horizontal ---
         // Cari rasio px-per-fonsize dari baris terpanjang, lalu hitung max fontSize
@@ -82,7 +97,7 @@ class FotoAbsenProcessor
             $candidate = (int) floor($maxTextW / $pxPerSize);
             $fontSize = min($fontSize, $candidate);
         }
-        $fontSize = max(28, $fontSize); // batas minimum agar tetap terbaca
+        $fontSize = max(12, $fontSize); // batas minimum agar tetap terbaca
 
         // --- Hitung tinggi kedua baris ---
         $h1 = self::tinggiTeks($fontSize, $fontPath, $label);
