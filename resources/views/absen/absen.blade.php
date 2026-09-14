@@ -937,7 +937,7 @@
             });
         });
 
-        // Selesaikan: tampilkan form upload foto selesai + buka kamera
+        // Selesaikan: tampilkan form upload foto selesai + pilih sumber foto
         document.querySelectorAll('.btn-selesai').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.id;
@@ -945,7 +945,7 @@
                 form.classList.toggle('hidden');
                 if (!form.classList.contains('hidden')) {
                     const fileInput = document.getElementById('file-' + id);
-                    if (fileInput) fileInput.click();
+                    if (fileInput) bukaSheetSumber(fileInput);
                 }
             });
         });
