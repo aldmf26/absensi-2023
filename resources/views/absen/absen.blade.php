@@ -610,10 +610,10 @@
         <div id="tab-tambah" class="tab-panel {{ $awalTab !== 'tambah' ? 'hidden' : '' }}">
             <div class="card">
                 <h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px;">➕ Tambah Absen
-                    <button type="button" class="btn btn-sm" id="btn-toggle-tambah">▲ Sembunyikan</button>
+                    <button type="button" class="btn btn-sm" id="btn-toggle-tambah">▼ Tampilkan</button>
                 </h3>
                 <form id="absen-form" method="POST" action="{{ route('absen.store') }}"
-                    enctype="multipart/form-data">
+                    enctype="multipart/form-data" class="hidden">
                     @csrf
 
                     <label>Tanggal</label>
