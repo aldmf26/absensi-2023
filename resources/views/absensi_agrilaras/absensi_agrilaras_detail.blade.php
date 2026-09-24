@@ -521,7 +521,7 @@ $(document).on('click', '.remove_monitoring', function() {
                     });
                 })
             });
-        $('.id_karyawan').select2({
+        $('.id_karyawan').select2('destroy').select2({
                     dropdownParent: $('#tambah_data .modal-content'),
                     placeholder: 'Pilih Karyawan',
                     allowClear: true
