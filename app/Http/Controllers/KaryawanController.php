@@ -338,4 +338,36 @@ class KaryawanController extends Controller
             });
         return response()->json(['exists' => count($names) > 0, 'names' => $names]);
     }
+
+    public function pinList()
+    {
+        $karyawan = Karyawan::all();
+        $employees = [];
+        $pinGroups = [];
+
+        foreach ($karyawan as $k) {
+            $employees[] = [
+                'id' => $k->id_karyawan,
+                'nama' => $k->nama_karyawan,
+                'punya_pin' => $k->pin_absen !== null,
+            ];
+        }
+
+        foreach ($karyawan->whereNotNull('pin_absen') as $k) {
+            $matched = false;
+            foreach ($pinGroups as &$g) {
+                if (Hash::check($k->pin_absen, $g['hash'])) {
+                    $g['names'][] = $k->nama_karyawan;
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                $pinGroups[] = ['hash' => $k->pin_absen, 'names' => [$k->nama_karyawan]];
+            }
+        }
+        $duplicates = array_values(array_filter($pinGroups, fn($g) => count($g['names']) > 1));
+
+        return response()->json(['employees' => $employees, 'duplicates' => $duplicates]);
+    }
 }

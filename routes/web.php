@@ -36,6 +36,7 @@ Route::controller(\App\Http\Controllers\KaryawanAbsenController::class)->group(f
     Route::controller(KaryawanController::class)
         ->middleware('block-karyawan')
         ->group(function () {
+            Route::get('/karyawan/pin-list', 'pinList')->name('pinList');
             Route::get('/karyawan', 'index')->name('karyawan');
             Route::post('/karyawan', 'addKaryawan')->name('addKaryawan');
             Route::patch('/karyawan', 'editKaryawan')->name('editKaryawan');

@@ -43,6 +43,9 @@
                                 class="fas fa-book"></i>
                             Import Excel
                         </button>
+                        <button type="button" class="btn btn-warning mb-3 ml-4" data-toggle="modal" data-target="#pinListModal">
+                            📋 Cek Duplikat PIN
+                        </button>
                         {{-- modal import excel karyawan --}}
                         <form action="{{ route('importKaryawan') }}" method="post" enctype="multipart/form-data">
                             @csrf
@@ -266,6 +269,34 @@
                 </div>
             </form>
         @endforeach
+        {{-- Modal List PIN & Duplikat --}}
+        <div class="modal fade" id="pinListModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">📋 List PIN & Cek Duplikat</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="pinListLoading">⏳ Memuat...</div>
+                        <div id="pinListContent" style="display:none;">
+                            <table class="table table-sm table-bordered">
+                                <thead class="thead-dark">
+                                    <tr><th>No</th><th>Nama Karyawan</th><th>Status PIN</th></tr>
+                                </thead>
+                                <tbody id="pinListTable"></tbody>
+                            </table>
+                            <div id="pinDuplikat" class="mt-3"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <script>
         function cekPin(el, id) {
             const pin = el.value.trim();
@@ -287,5 +318,33 @@
                 }
             }).catch(() => div.style.display = 'none');
         }
+        // Load pinList modal data when shown
+        $('#pinListModal').on('show.bs.modal', function () {
+            $('#pinListLoading').show();
+            $('#pinListContent').hide();
+            fetch('{{ route("pinList") }}')
+                .then(r => r.json())
+                .then(data => {
+                    let html = '';
+                    data.employees.forEach((e, i) => {
+                        html += `<tr><td>${i+1}</td><td>${e.nama}</td><td>${e.punya_pin ? '✅ Ada PIN' : '✗ Tanpa PIN'}</td></tr>`;
+                    });
+                    document.getElementById('pinListTable').innerHTML = html;
+                    let dupHtml = '';
+                    if (data.duplicates.length > 0) {
+                        dupHtml = '<div class="alert alert-danger"><b>⚠️ PIN Sama Ditemukan:</b><ul>';
+                        data.duplicates.forEach(g => {
+                            dupHtml += `<li>${g.names.join(' & ')} — PIN sama</li>`;
+                        });
+                        dupHtml += '</ul></div>';
+                    } else {
+                        dupHtml = '<div class="alert alert-success">✅ Tidak ada duplikat PIN</div>';
+                    }
+                    document.getElementById('pinDuplikat').innerHTML = dupHtml;
+                    $('#pinListLoading').hide();
+                    $('#pinListContent').show();
+                })
+                .catch(() => { $('#pinListLoading').html('❌ Gagal memuat data'); });
+        });
         </script>
     @endsection
