@@ -92,9 +92,9 @@ class tabelAgrilaras extends Controller
         $id_karyawan = $r->id_karyawan;
 
         $tanggal = $r->tanggal;
-        $pekerjaan = $r->pekerjaan;
-        $j_awal = $r->j_awal;
-        $j_akhir = $r->j_akhir;
+        $pekerjaan = $r->pekerjaan[0] ?? '';
+        $j_awal = $r->j_awal[0] ?? '';
+        $j_akhir = $r->j_akhir[0] ?? '';
 
         for ($i = 0; $i < sizeof($id_karyawan); $i++) {
             $id_krwn = $id_karyawan[$i];
@@ -102,9 +102,9 @@ class tabelAgrilaras extends Controller
             $data = [
                 'id_karyawan' => $id_karyawan[$i],
                 'tgl' => $tanggal,
-                'pekerjaan' => $pekerjaan[$i],
-                'j_awal' => $j_awal[$i],
-                'j_akhir' => $j_akhir[$i],
+                'pekerjaan' => $pekerjaan,
+                'j_awal' => $j_awal,
+                'j_akhir' => $j_akhir,
                 'bayaran' => $gaji->rp_m / 8
             ];
             DB::table('absen_lembur')->insert($data);

@@ -135,7 +135,7 @@
 
                                 <div class="col-lg-3">
                                     <label for="">Pilih Karyawan</label>
-                                    <Select class="form-control select id_karyawan" name="id_karyawan[]">
+                                    <Select class="form-control select id_karyawan" name="id_karyawan[]" multiple>
                                         <option value="">Pilih Karyawan</option>
                                         @foreach ($karyawan as $k)
                                             <option value="{{ $k->id_karyawan }}">{{ $k->nama_karyawan }}</option>
@@ -157,17 +157,7 @@
                                 </div>
 
                             </div>
-                            <div id="tambah_input">
-
-                            </div>
-                            <div class="row mt-4">
-                                <div class="col-lg-12">
-                                    <button type="button" class="btn btn-info btn-sm float-right tambah_input"><i
-                                            class="fas fa-plus"></i>
-                                        Tambah</button>
-                                </div>
-                            </div>
-                        </div>
+</div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                             <button type="submit" class="btn btn-primary">Save</button>
@@ -436,24 +426,7 @@
 
 
                 });
-
-                var count = 1;
-                $(document).on('click', '.tambah_input', function() {
-                    count = count + 1;
-
-                    $.ajax({
-                        url: "{{ route('tambah_lembur') }}?count=" + count,
-                        type: "Get",
-                        success: function(data) {
-                            $('#tambah_input').append(data);
-                        }
-                    });
-
-
-
-
-                });
-                $(document).on('click', '.remove_monitoring', function() {
+$(document).on('click', '.remove_monitoring', function() {
 
                     var delete_row = $(this).attr('count');
 
