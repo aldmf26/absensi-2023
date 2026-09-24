@@ -297,6 +297,7 @@
                 </div>
             </div>
         </div>
+        @section('script')
         <script>
         function cekPin(el, id) {
             const pin = el.value.trim();
@@ -319,32 +320,41 @@
             }).catch(() => div.style.display = 'none');
         }
         // Load pinList modal data when shown
-        $('#pinListModal').on('show.bs.modal', function () {
-            $('#pinListLoading').show();
-            $('#pinListContent').hide();
-            fetch('{{ route("pinList") }}')
-                .then(r => r.json())
-                .then(data => {
-                    let html = '';
-                    data.employees.forEach((e, i) => {
-                        html += `<tr><td>${i+1}</td><td>${e.nama}</td><td>${e.punya_pin ? '✅ Ada PIN' : '✗ Tanpa PIN'}</td></tr>`;
-                    });
-                    document.getElementById('pinListTable').innerHTML = html;
-                    let dupHtml = '';
-                    if (data.duplicates.length > 0) {
-                        dupHtml = '<div class="alert alert-danger"><b>⚠️ PIN Sama Ditemukan:</b><ul>';
-                        data.duplicates.forEach(g => {
-                            dupHtml += `<li>${g.names.join(' & ')} — PIN sama</li>`;
-                        });
-                        dupHtml += '</ul></div>';
-                    } else {
-                        dupHtml = '<div class="alert alert-success">✅ Tidak ada duplikat PIN</div>';
-                    }
-                    document.getElementById('pinDuplikat').innerHTML = dupHtml;
-                    $('#pinListLoading').hide();
-                    $('#pinListContent').show();
-                })
-                .catch(() => { $('#pinListLoading').html('❌ Gagal memuat data'); });
+        document.addEventListener('DOMContentLoaded', function () {
+            var pinModal = document.getElementById('pinListModal');
+            if (pinModal) {
+                pinModal.addEventListener('shown.bs.modal', function () {
+                    var loading = document.getElementById('pinListLoading');
+                    var content = document.getElementById('pinListContent');
+                    loading.style.display = 'block';
+                    content.style.display = 'none';
+                    fetch('{{ route("pinList") }}')
+                        .then(r => r.json())
+                        .then(data => {
+                            var table = document.getElementById('pinListTable');
+                            var html = '';
+                            data.employees.forEach(function(e, i) {
+                                html += '<tr><td>' + (i+1) + '</td><td>' + e.nama + '</td><td>' + (e.punya_pin ? '✅ Ada PIN' : '✗ Tanpa PIN') + '</td></tr>';
+                            });
+                            table.innerHTML = html;
+                            var dupDiv = document.getElementById('pinDuplikat');
+                            var dupHtml = '';
+                            if (data.duplicates.length > 0) {
+                                dupHtml = '<div class="alert alert-danger"><b>⚠️ PIN Sama Ditemukan:</b><ul>';
+                                data.duplicates.forEach(function(g) {
+                                    dupHtml += '<li>' + g.names.join(' & ') + ' — PIN sama</li>';
+                                });
+                                dupHtml += '</ul></div>';
+                            } else {
+                                dupHtml = '<div class="alert alert-success">✅ Tidak ada duplikat PIN</div>';
+                            }
+                            dupDiv.innerHTML = dupHtml;
+                            loading.style.display = 'none';
+                            content.style.display = 'block';
+                        })
+                        .catch(function() { loading.innerHTML = '❌ Gagal memuat data'; });
+                });
+            }
         });
         </script>
-    @endsection
+        @endsection
