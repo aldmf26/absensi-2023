@@ -102,14 +102,16 @@ class KaryawanController extends Controller
         }
 
         $kr = Karyawan::create($data);
-        $data2 = [
-            'id_karyawan' => $kr->id,
-            'rp_m' => $request->rp_m,
-            'rp_e' => $request->rp_e ?? 0,
-            'rp_sp' => $request->rp_sp ?? 0,
-            'g_bulanan' => $request->g_bulanan,
-        ];
-        Gaji::create($data2);
+        if ($id_departemen == 4) {
+            $data2 = [
+                'id_karyawan' => $kr->id_karyawan,
+                'rp_m' => $request->rp_m,
+                'rp_e' => $request->rp_e ?? 0,
+                'rp_sp' => $request->rp_sp ?? 0,
+                'g_bulanan' => $request->g_bulanan,
+            ];
+            Gaji::create($data2);
+        }
 
         return redirect()->route($rot, ['id_departemen' => $id_departemen])->with('sukses', 'Berhasil Tambah Data Karyawan');
     }

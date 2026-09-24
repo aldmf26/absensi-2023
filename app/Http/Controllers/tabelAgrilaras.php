@@ -99,13 +99,14 @@ class tabelAgrilaras extends Controller
         for ($i = 0; $i < sizeof($id_karyawan); $i++) {
             $id_krwn = $id_karyawan[$i];
             $gaji = DB::selectOne("SELECT * FROM tb_gaji as a where a.id_karyawan = '$id_krwn'");
+            $bayaran = $gaji ? ($gaji->rp_m / 8) : 0;
             $data = [
                 'id_karyawan' => $id_karyawan[$i],
                 'tgl' => $tanggal,
                 'pekerjaan' => $pekerjaan,
                 'j_awal' => $j_awal,
                 'j_akhir' => $j_akhir,
-                'bayaran' => $gaji->rp_m / 8
+                'bayaran' => $bayaran
             ];
             DB::table('absen_lembur')->insert($data);
         }
