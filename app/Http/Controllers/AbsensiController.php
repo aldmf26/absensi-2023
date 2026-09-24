@@ -143,8 +143,15 @@ $tahun = date('Y');
         $sisa_jatah = max(0, 12 - $terpakai);
         $hari_tidak_dibayar = $jenis_cuti === 17 ? max(0, $jumlah_hari - $sisa_jatah) : 0;
 
+        $namaCutiDefault = $jenis_cuti === 17 ? 'Cuti Tahunan' : ($jenis_cuti === 12 ? 'Pulang Luar Kota' : 'Cuti');
+        Jenis::firstOrCreate(
+            ['id' => $jenis_cuti],
+            ['jenis_pekerjaan' => $namaCutiDefault, 'keterangan' => $namaCutiDefault]
+        );
+
         foreach ($tanggal as $i => $tgl) {
-            $ketRow = trim($data['ket'] ?? '');
+            $userKet = trim($data['ket'] ?? '');
+            $ketRow = $userKet;
             if ($jenis_cuti === 17 && $i >= $sisa_jatah) {
                 $ketRow = trim(($ketRow ? $ketRow . ' | ' : '') . 'TIDAK DIBAYAR (jatah cuti 12 hari habis)');
             }
