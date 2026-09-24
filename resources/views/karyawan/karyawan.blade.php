@@ -43,9 +43,6 @@
                                 class="fas fa-book"></i>
                             Import Excel
                         </button>
-                        <button type="button" class="btn btn-warning mb-3 ml-4" data-toggle="modal" data-target="#pinListModal">
-                            📋 Cek Duplikat PIN
-                        </button>
                         {{-- modal import excel karyawan --}}
                         <form action="{{ route('importKaryawan') }}" method="post" enctype="multipart/form-data">
                             @csrf
@@ -269,51 +266,6 @@
                 </div>
             </form>
         @endforeach
-        {{-- Modal List PIN & Duplikat --}}
-        <div class="modal fade" id="pinListModal" tabindex="-1" role="dialog" aria-hidden="true">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">📋 List PIN & Cek Duplikat</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <table class="table table-sm table-bordered">
-                            <thead class="thead-dark">
-                                <tr><th>No</th><th>Nama Karyawan</th><th>Status PIN</th></tr>
-                            </thead>
-                            <tbody>
-                                @foreach($allKaryawan as $i => $k)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $k->nama_karyawan }}</td>
-                                    <td>{{ $k->pin_absen ? '✅ Ada PIN' : '✗ Tanpa PIN' }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                        @if(count($pinDuplicates) > 0)
-                        <div class="alert alert-danger mt-3">
-                            <b>⚠️ PIN Sama Ditemukan:</b>
-                            <ul>
-                                @foreach($pinDuplicates as $g)
-                                <li>{{ $g['names'].join(' & ') }} — PIN sama</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                        @else
-                        <div class="alert alert-success mt-3">✅ Tidak ada duplikat PIN</div>
-                        @endif
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        </script>
         <script>
         function cekPin(el, id) {
             const pin = el.value.trim();

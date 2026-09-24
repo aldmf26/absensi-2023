@@ -38,30 +38,12 @@ class KaryawanController extends Controller
                 ->join('departemen', 'karyawan.id_departemen', '=', 'departemen.id_departemen')
                 ->where('departemen.id_departemen', 'LIKE', '%' . '1' . '%')
                 ->orderBy('id_karyawan', 'desc')->get();
-            $allKaryawan = Karyawan::all();
-            $pinGroups = [];
-            foreach ($allKaryawan->whereNotNull('pin_absen') as $k) {
-                $matched = false;
-                foreach ($pinGroups as &$g) {
-                    if (\Illuminate\Support\Facades\Hash::check($k->pin_absen, $g['hash'])) {
-                        $g['names'][] = $k->nama_karyawan;
-                        $matched = true;
-                        break;
-                    }
-                }
-                if (!$matched) {
-                    $pinGroups[] = ['hash' => $k->pin_absen, 'names' => [$k->nama_karyawan]];
-                }
-            }
-            $duplicates = array_values(array_filter($pinGroups, fn($g) => count($g['names']) > 1));
             $data = [
                 'title' => 'Karyawan',
                 'karyawan' => $karyawanAll,
                 'departemen' => Departemen::where('id_departemen', $id_departemen)->get(),
                 'aktif' => 1,
                 'id_departemen' => $id_departemen,
-                'pinDuplicates' => $duplicates,
-                'allKaryawan' => $allKaryawan,
             ];
             return view('karyawan.karyawan', $data);
         }
