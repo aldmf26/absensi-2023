@@ -68,6 +68,7 @@ class KaryawanController extends Controller
             'posisi' => $request->posisi
         ];
         if ($request->filled('pin_absen')) {
+            $request->validate(['pin_absen' => 'required|string|size:6|unique:karyawan,pin_absen']);
             $data['pin_absen'] = bcrypt($request->pin_absen);
         }
         if ($id_departemen == 1) {
@@ -99,6 +100,7 @@ class KaryawanController extends Controller
         ];
 
         if ($request->filled('pin_absen')) {
+            $request->validate(['pin_absen' => 'required|string|size:6|unique:karyawan,pin_absen,' . $request->id_karyawan . ',id_karyawan']);
             $data['pin_absen'] = bcrypt($request->pin_absen);
         }
 
