@@ -135,7 +135,7 @@
 
                                 <div class="col-lg-3">
                                     <label for="">Pilih Karyawan</label>
-                                    <Select class="form-control select id_karyawan" name="id_karyawan[]" multiple>
+                                    <Select class="form-control select2 id_karyawan" name="id_karyawan[]" multiple>
                                         <option value="">Pilih Karyawan</option>
                                         @foreach ($karyawan as $k)
                                             <option value="{{ $k->id_karyawan }}">{{ $k->nama_karyawan }}</option>
@@ -521,5 +521,10 @@ $(document).on('click', '.remove_monitoring', function() {
                     });
                 })
             });
+        $('.id_karyawan').select2({
+                    dropdownParent: $('#tambah_data .modal-content'),
+                    placeholder: 'Pilih Karyawan',
+                    allowClear: true
+                });
         </script>
     @endsection
