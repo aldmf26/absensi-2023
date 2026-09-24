@@ -280,16 +280,32 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <div id="pinListLoading">⏳ Memuat...</div>
-                        <div id="pinListContent" style="display:none;">
-                            <table class="table table-sm table-bordered">
-                                <thead class="thead-dark">
-                                    <tr><th>No</th><th>Nama Karyawan</th><th>Status PIN</th></tr>
-                                </thead>
-                                <tbody id="pinListTable"></tbody>
-                            </table>
-                            <div id="pinDuplikat" class="mt-3"></div>
+                        <table class="table table-sm table-bordered">
+                            <thead class="thead-dark">
+                                <tr><th>No</th><th>Nama Karyawan</th><th>Status PIN</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach($allKaryawan as $i => $k)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $k->nama_karyawan }}</td>
+                                    <td>{{ $k->pin_absen ? '✅ Ada PIN' : '✗ Tanpa PIN' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        @if(count($pinDuplicates) > 0)
+                        <div class="alert alert-danger mt-3">
+                            <b>⚠️ PIN Sama Ditemukan:</b>
+                            <ul>
+                                @foreach($pinDuplicates as $g)
+                                <li>{{ $g['names'].join(' & ') }} — PIN sama</li>
+                                @endforeach
+                            </ul>
                         </div>
+                        @else
+                        <div class="alert alert-success mt-3">✅ Tidak ada duplikat PIN</div>
+                        @endif
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
@@ -297,7 +313,7 @@
                 </div>
             </div>
         </div>
-        @section('script')
+        </script>
         <script>
         function cekPin(el, id) {
             const pin = el.value.trim();
@@ -319,42 +335,5 @@
                 }
             }).catch(() => div.style.display = 'none');
         }
-        // Load pinList modal data when shown
-        document.addEventListener('DOMContentLoaded', function () {
-            var pinModal = document.getElementById('pinListModal');
-            if (pinModal) {
-                pinModal.addEventListener('shown.bs.modal', function () {
-                    var loading = document.getElementById('pinListLoading');
-                    var content = document.getElementById('pinListContent');
-                    loading.style.display = 'block';
-                    content.style.display = 'none';
-                    fetch('{{ route("pinList") }}')
-                        .then(r => r.json())
-                        .then(data => {
-                            var table = document.getElementById('pinListTable');
-                            var html = '';
-                            data.employees.forEach(function(e, i) {
-                                html += '<tr><td>' + (i+1) + '</td><td>' + e.nama + '</td><td>' + (e.punya_pin ? '✅ Ada PIN' : '✗ Tanpa PIN') + '</td></tr>';
-                            });
-                            table.innerHTML = html;
-                            var dupDiv = document.getElementById('pinDuplikat');
-                            var dupHtml = '';
-                            if (data.duplicates.length > 0) {
-                                dupHtml = '<div class="alert alert-danger"><b>⚠️ PIN Sama Ditemukan:</b><ul>';
-                                data.duplicates.forEach(function(g) {
-                                    dupHtml += '<li>' + g.names.join(' & ') + ' — PIN sama</li>';
-                                });
-                                dupHtml += '</ul></div>';
-                            } else {
-                                dupHtml = '<div class="alert alert-success">✅ Tidak ada duplikat PIN</div>';
-                            }
-                            dupDiv.innerHTML = dupHtml;
-                            loading.style.display = 'none';
-                            content.style.display = 'block';
-                        })
-                        .catch(function() { loading.innerHTML = '❌ Gagal memuat data'; });
-                });
-            }
-        });
         </script>
         @endsection
