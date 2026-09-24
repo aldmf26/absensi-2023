@@ -253,7 +253,8 @@
 
                                 <label for="">PIN Absensi (kosongkan bila tidak diubah)</label>
                                 <input type="password" name="pin_absen" class="form-control" maxlength="6"
-                                    placeholder="PIN utk absen mandiri">
+                                    placeholder="PIN utk absen mandiri" oninput="cekPin(this, {{ $d->id_karyawan }})">
+                                <div id="pin-info-{{ $d->id_karyawan }}" class="text-danger text-sm mt-1" style="display:none;"></div>
 
                                 <input type="submit" name="simpan" value="Simpan" id="tombol" class="btn btn-primary mt-3">
                                 <button type="button" class="btn btn-secondary  mt-3" data-dismiss="modal">Close</button>
@@ -265,4 +266,26 @@
                 </div>
             </form>
         @endforeach
+        <script>
+        function cekPin(el, id) {
+            const pin = el.value.trim();
+            const div = document.getElementById('pin-info-' + id);
+            if (pin.length < 6) { div.style.display = 'none'; return; }
+            fetch('{{ route("cekPin") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}'},
+                body: JSON.stringify({pin: pin, id_karyawan: id})
+            }).then(r => r.json()).then(data => {
+                if (data.exists) {
+                    div.textContent = '⚠️ PIN sudah dipakai oleh: ' + data.names.join(', ');
+                    div.style.display = 'block';
+                    div.style.color = '#dc3545';
+                } else {
+                    div.textContent = '✅ PIN tersedia';
+                    div.style.display = 'block';
+                    div.style.color = '#28a745';
+                }
+            }).catch(() => div.style.display = 'none');
+        }
+        </script>
     @endsection

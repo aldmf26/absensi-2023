@@ -13,6 +13,7 @@ use App\Models\Status;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -317,5 +318,24 @@ class KaryawanController extends Controller
         }
 
         return redirect()->route('karyawanAgrilaras', ['id_departemen' => 4])->with('sukses', 'Data berhasil Diimport');
+    }
+
+    public function cekPin(Request $request)
+    {
+        $pin = $request->input('pin');
+        $id = $request->input('id_karyawan');
+        if (empty($pin)) {
+            return response()->json(['exists' => false]);
+        }
+        $names = [];
+        Karyawan::where('id_karyawan', '!=', $id)
+            ->whereNotNull('pin_absen')
+            ->get()
+            ->each(function ($k) use ($pin, &$names) {
+                if (Hash::check($pin, $k->pin_absen)) {
+                    $names[] = $k->nama_karyawan;
+                }
+            });
+        return response()->json(['exists' => count($names) > 0, 'names' => $names]);
     }
 }

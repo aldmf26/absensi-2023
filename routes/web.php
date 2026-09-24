@@ -39,6 +39,7 @@ Route::controller(\App\Http\Controllers\KaryawanAbsenController::class)->group(f
             Route::get('/karyawan', 'index')->name('karyawan');
             Route::post('/karyawan', 'addKaryawan')->name('addKaryawan');
             Route::patch('/karyawan', 'editKaryawan')->name('editKaryawan');
+            Route::post('/karyawan/cek-pin', 'cekPin')->name('cekPin');
             Route::post('/delete-karyawan', 'deleteKaryawan')->name('deleteKaryawan');
             Route::get('/excelKaryawan', 'excelKaryawan')->name('excelKaryawan');
             Route::get('/excelKaryawanAgrilaras', 'excelKaryawanAgrilaras')->name('excelKaryawanAgrilaras');
